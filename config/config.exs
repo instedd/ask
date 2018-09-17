@@ -64,6 +64,9 @@ config :sentry,
   enable_source_code_context: false,
   release: version
 
+config :hotjar,
+  tracking_id: System.get_env("HOTJAR_TRACKING_ID")
+
 # %% Coherence Configuration %%   Don't remove this line
 config :coherence,
   user_schema: Ask.User,

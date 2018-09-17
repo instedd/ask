@@ -17,6 +17,10 @@ if [ "$TRAVIS_TAG" = "" ]; then
       DOCKER_TAG="$PROJECT_VERSION-dev"
       ;;
 
+    feature-rc/*)
+      DOCKER_TAG=${TRAVIS_BRANCH##feature-rc/}
+      ;;
+
     stable)
       echo "Pulling $PROJECT_VERSION and tagging as latest"
       docker login -u ${DOCKER_USER} -p ${DOCKER_PASS} ${DOCKER_REGISTRY}
