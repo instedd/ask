@@ -131,7 +131,7 @@ class SurveyShow extends Component<any, State> {
       estimatedSuccessRate, initialSuccessRate, successRate, completionRate, completes, missing, pending, multiplier, needed } = this.props
     const { stopUnderstood } = this.state
 
-    if (!survey || !cumulativePercentages || !questionnaires || !respondentsByDisposition || !reference) {
+    if (!survey || !cumulativePercentages || !questionnaires) {
       return <p>{t('Loading...')}</p>
     }
 
@@ -172,17 +172,27 @@ class SurveyShow extends Component<any, State> {
 
     let title = this.titleFor(questionnaires)
 
-    let stats = [
-      {value: target, label: t('Target')},
-      {value: respondentsByDisposition.responsive.detail.completed.count, label: t('Completes')},
-      {value: respondentsByDisposition.responsive.detail.partial.count, label: t('Partials')},
-      {value: contactedRespondents, label: t('Contacted Respondents')}
-    ]
-    let colors = referenceColors(reference.length)
+    let stats
+    if (respondentsByDisposition) {
+      stats = [
+        {value: target, label: t('Target')},
+        {value: respondentsByDisposition.responsive.detail.completed.count, label: t('Completes')},
+        {value: respondentsByDisposition.responsive.detail.partial.count, label: t('Partials')},
+        {value: contactedRespondents, label: t('Contacted Respondents')}
+      ]
+    } else {
+      stats = [
+        {value: target, label: t('Target')},
+        {value: 0, label: t('Completes')},
+        {value: 0, label: t('Partials')},
+        {value: contactedRespondents, label: t('Contacted Respondents')}
+      ]
+    }
+    let colors = referenceColors((reference || []).length)
 
     const hasQuotas = survey.quotas.vars.length > 0
 
-    let forecastsReferences = reference.map((r, i) => {
+    let forecastsReferences = (reference || []).map((r, i) => {
       const name = r.name ? r.name : ''
       const modes = r.modes ? modeLabel(r.modes) : ''
       const separator = name && modes ? ' | ' : ''
@@ -301,7 +311,7 @@ class SurveyShow extends Component<any, State> {
         </div>
         <div className='row'>
           <div className='col s12'>
-            {this.dispositions(respondentsByDisposition, reference, hasQuotas)}
+            {respondentsByDisposition ? this.dispositions(respondentsByDisposition, reference, hasQuotas) : ''}
           </div>
         </div>
       </div>
