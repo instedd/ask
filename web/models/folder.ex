@@ -1,5 +1,8 @@
 defmodule Ask.Folder do
   use Ask.Web, :model
+  alias Ask.{
+    Project
+  }
 
   schema "folders" do
     field :name, :string

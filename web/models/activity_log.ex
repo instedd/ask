@@ -1,7 +1,7 @@
 defmodule Ask.ActivityLog do
   use Ask.Web, :model
   import User.Helper
-  alias Ask.{ActivityLog, Project, Survey, Questionnaire}
+  alias Ask.{ActivityLog, Project, Survey, Questionnaire, Folder}
 
   schema "activity_log" do
     belongs_to :project, Ask.Project
@@ -24,6 +24,9 @@ defmodule Ask.ActivityLog do
   def valid_actions("questionnaire"), do:
     ["create", "edit", "rename", "delete", "add_mode", "remove_mode", "add_language", "remove_language", "create_step", "delete_step", "rename_step", "edit_step", "edit_settings", "create_section", "rename_section", "delete_section", "edit_section"]
 
+  def valid_actions("folder"), do:
+  ["rename"]
+
   def valid_actions(_), do: []
 
   def changeset(struct, params \\ %{}) do
@@ -36,6 +39,7 @@ defmodule Ask.ActivityLog do
   defp typeof(%Project{}), do: "project"
   defp typeof(%Survey{}), do: "survey"
   defp typeof(%Questionnaire{}), do: "questionnaire"
+  defp typeof(%Folder{}), do: "folder"
 
   defp create(action, project, conn, entity, metadata) do
     user_id = case current_user(conn) do
@@ -144,6 +148,13 @@ defmodule Ask.ActivityLog do
     create("rename", project, conn, survey, %{
       old_survey_name: old_survey_name,
       new_survey_name: new_survey_name
+    })
+  end
+
+  def rename_folder(project, conn, folder, old_folder_name, new_folder_name) do
+    create("rename", project, conn, folder, %{
+      old_folder_name: old_folder_name,
+      new_folder_name: new_folder_name
     })
   end
 

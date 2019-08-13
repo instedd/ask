@@ -56,7 +56,7 @@ defmodule Ask.SurveyControllerTest do
 
     test "list only completed surveys with folder_id", %{conn: conn, user: user} do
       project = create_project_for_user(user)
-      folder = insert(:folder, project_id: project.id)
+      folder = insert(:folder, project: project)
       insert(:survey, project: project, state: "running")
       survey = insert(:survey, project: project, state: "terminated", exit_code: 0, folder_id: folder.id)
       survey = Survey |> Repo.get(survey.id)
@@ -432,7 +432,7 @@ defmodule Ask.SurveyControllerTest do
 
     test "creates the survey inside the requested folder", %{conn: conn, user: user} do
       project = create_project_for_user(user)
-      folder = insert(:folder, project_id: project.id)
+      folder = insert(:folder, project: project)
 
       conn = post conn, project_folder_survey_path(conn, :create, project.id, folder.id)
 
