@@ -546,6 +546,44 @@ describe('survey reducer', () => {
     })
   })
 
+  describe('quota buckets intervals', () => {
+    const questionnaire = deepFreeze({
+      steps: [
+        {
+          type: 'numeric',
+          store: 'Age'
+        }
+      ],
+      id: 1
+    })
+
+    const baseState = deepFreeze(playActions([
+      actions.fetch(1, 1),
+      actions.receive(survey),
+      actions.setQuotaVars([{var: 'Age', steps: '20, 30, 40'}], questionnaire)
+    ]))
+
+    let intervalStrings = [
+      '20, 30, 40',
+      '20, 40, 30',
+      '30, 20, 40',
+      '30, 40, 20',
+      '40, 20, 30',
+      '40, 30, 20',
+    ]
+
+    intervalStrings.forEach((intervalString) => {
+      it('should build sort-insensitive quota buckets intervals', () => {
+        const actionsToPlay = [
+          actions.fetch(1, 1),
+          actions.receive(survey),
+          actions.setQuotaVars([{var: 'Age', steps: intervalString}], questionnaire)
+        ]
+        expect(playActions(actionsToPlay)).toEqual(baseState)
+      })
+    })
+  })
+
   it('should rebuild input from quota buckets', () => {
     const survey = deepFreeze({
       quotas: {

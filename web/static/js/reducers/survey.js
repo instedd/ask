@@ -219,7 +219,7 @@ const buildBuckets = (storeVars, options) => {
 }
 
 const intervalsFrom = (valueString) => {
-  const values = map(split(valueString, ','), (value) => parseInt(value.trim()))
+  const values = map(split(valueString, ','), (value) => parseInt(value.trim())).sort((a, b) => a - b)
   if (values.length <= 1) {
     return []
   }
