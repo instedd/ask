@@ -535,11 +535,11 @@ describe('survey reducer', () => {
             {'condition': [{store: 'Age', value: [20, 29]}, {store: 'Smokes', value: 'Yes'}], 'quota': 0},
             {'condition': [{store: 'Age', value: [30, 39]}, {store: 'Smokes', value: 'Yes'}], 'quota': 0},
             {'condition': [{store: 'Age', value: [40, 49]}, {store: 'Smokes', value: 'Yes'}], 'quota': 0},
-            {'condition': [{store: 'Age', value: [50, 119]}, {store: 'Smokes', value: 'Yes'}], 'quota': 0},
+            {'condition': [{store: 'Age', value: [50, 120]}, {store: 'Smokes', value: 'Yes'}], 'quota': 0},
             {'condition': [{store: 'Age', value: [20, 29]}, {store: 'Smokes', value: 'No'}], 'quota': 0},
             {'condition': [{store: 'Age', value: [30, 39]}, {store: 'Smokes', value: 'No'}], 'quota': 0},
             {'condition': [{store: 'Age', value: [40, 49]}, {store: 'Smokes', value: 'No'}], 'quota': 0},
-            {'condition': [{store: 'Age', value: [50, 119]}, {store: 'Smokes', value: 'No'}], 'quota': 0}
+            {'condition': [{store: 'Age', value: [50, 120]}, {store: 'Smokes', value: 'No'}], 'quota': 0}
           ]
         }
       }
@@ -558,7 +558,7 @@ describe('survey reducer', () => {
           },
           {
             'condition': [
-              { store: 'age', value: [10, 49] }
+              { store: 'age', value: [10, 50] }
             ]
           }
         ]

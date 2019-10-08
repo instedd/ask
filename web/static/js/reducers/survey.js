@@ -224,6 +224,10 @@ const intervalsFrom = (valueString) => {
     return []
   }
 
+  if (values.length == 2) {
+    return [[values[0], values[1]]]
+  }
+
   return [[values[0], values[1] - 1], ...intervalsFrom(drop(values))]
 }
 
@@ -286,7 +290,9 @@ export const sumQuotasIfValid = (condition: Condition[], buckets: Bucket[], newQ
 export const rebuildInputFromQuotaBuckets = (store: string, survey: Survey) => {
   const buckets = survey.quotas.buckets.filter((bucket) => bucket.condition.map((condition) => condition.store).includes(store))
   let conditions = uniqWith(buckets.map((bucket) => find(bucket.condition, (condition) => condition.store == store).value), isEqual)
+  let lastCondition = conditions.pop() // last condition's upper bound doesn't have to be incremented
   conditions = conditions.map(x => [x[0], x[1] + 1])
+  conditions.push(lastCondition)
   conditions = flatten(conditions)
   conditions = uniqWith(conditions, isEqual)
   return conditions.join()
