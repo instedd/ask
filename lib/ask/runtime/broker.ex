@@ -3,7 +3,7 @@ defmodule Ask.Runtime.Broker do
   use Timex
   import Ecto.Query
   import Ecto
-  alias Ask.{Repo, Survey, Respondent, RespondentDispositionHistory, RespondentGroup, QuotaBucket, Logger, Schedule, SurvedaMetrics}
+  alias Ask.{Repo, Survey, Respondent, RespondentDispositionHistory, RespondentGroup, QuotaBucket, Logger, Schedule, SurvedaMetrics, RetryStat}
   alias Ask.Runtime.{Session, Reply, Flow, SessionMode, SessionModeProvider, ChannelStatusServer}
   alias Ask.QuotaBucket
 
@@ -205,11 +205,13 @@ defmodule Ask.Runtime.Broker do
     |> Enum.each(&start(survey, &1))
   end
 
-  def retry_respondent(respondent) do
+  def retry_respondent(%Respondent{ timeout_at: timeout_at} = respondent) do
     session = respondent.session |> Session.load
+    mode = session.current_mode |> SessionMode.mode
 
     Repo.transaction(fn ->
       try do
+        RetryStat.subtract!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: Timex.format!(timeout_at, "%Y%0m%0d%H%M", :strftime), survey_id: respondent.survey_id})
         handle_session_step(Session.timeout(session))
       rescue
         e in Ecto.StaleEntryError ->
@@ -529,6 +531,7 @@ defmodule Ask.Runtime.Broker do
       end
 
     timeout_at = next_timeout(respondent, timeout)
+    insert_retry_stat(respondent, session.current_mode |> SessionMode.mode, timeout_at)
     respondent
     |> Respondent.changeset(%{state: "active", session: Session.dump(session), timeout_at: timeout_at, language: session.flow.language, effective_modes: effective_modes})
     |> Repo.update!
@@ -565,6 +568,9 @@ defmodule Ask.Runtime.Broker do
     |> RespondentDispositionHistory.create(old_disposition, mode)
     |> update_quota_bucket(old_disposition, respondent.session["count_partial_results"])
   end
+
+  defp insert_retry_stat(%Respondent{disposition: "queued"} = respondent, mode, timeout_at), do: RetryStat.add!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: Timex.format!(timeout_at, "%Y%0m%0d%H%M", :strftime), survey_id: respondent.survey_id})
+  defp insert_retry_stat(_, _, _), do: nil
 
   defp update_respondent_and_set_disposition(respondent, session, dump, timeout, timeout_at, disposition, state) do
     old_disposition = respondent.disposition

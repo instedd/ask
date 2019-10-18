@@ -21,7 +21,7 @@ defmodule Ask.RetryStat do
     |> unique_constraint(:retry_stats_mode_attempt_retry_time_survey_id_index)
   end
 
-  def add!(%{attempt: attempt, mode: mode, retry_time: retry_time, survey: survey}) do
+  def add!(%{attempt: attempt, mode: mode, retry_time: retry_time, survey_id: survey_id}) do
     {:ok, updated} =
       Repo.insert(
         %RetryStat{
@@ -29,7 +29,7 @@ defmodule Ask.RetryStat do
           count: 1,
           mode: mode,
           retry_time: retry_time,
-          survey_id: survey.id
+          survey_id: survey_id
         },
         returning: [:amount],
         on_conflict: [inc: [count: 1]]
@@ -64,8 +64,8 @@ defmodule Ask.RetryStat do
   defp count_stat(nil), do: 0
   defp count_stat(stat), do: stat.count
 
-  defp get(%{attempt: attempt, mode: mode, retry_time: retry_time, survey: survey}),
+  defp get(%{attempt: attempt, mode: mode, retry_time: retry_time, survey_id: survey_id}),
     do:
       RetryStat
-      |> Repo.get_by(attempt: attempt, mode: mode, retry_time: retry_time, survey_id: survey.id)
+      |> Repo.get_by(attempt: attempt, mode: mode, retry_time: retry_time, survey_id: survey_id)
 end

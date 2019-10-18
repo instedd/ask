@@ -3,7 +3,7 @@ defmodule Ask.BrokerTest do
   use Ask.DummySteps
   use Timex
   alias Ask.Runtime.{Broker, Flow, SurveyLogger, ReplyHelper, ChannelStatusServer}
-  alias Ask.{Repo, Survey, Respondent, RespondentDispositionHistory, TestChannel, QuotaBucket, Questionnaire, RespondentGroupChannel, SurveyLogEntry, Schedule, StepBuilder}
+  alias Ask.{Repo, Survey, Respondent, RespondentDispositionHistory, TestChannel, QuotaBucket, Questionnaire, RespondentGroupChannel, SurveyLogEntry, Schedule, StepBuilder, RetryStat}
   alias Ask.Router.Helpers, as: Routes
   require Ask.Runtime.ReplyHelper
 
@@ -367,9 +367,11 @@ defmodule Ask.BrokerTest do
 
     {:ok, _} = Broker.start_link
     Broker.handle_info(:poll, nil)
-
-    respondent = Repo.get(Respondent, respondent.id)
+    %Respondent{ timeout_at: timeout_at} = respondent = Repo.get(Respondent, respondent.id)
     Broker.sync_step(respondent, Flow.Message.reply("Yes"))
+
+    retry_stat_filter = %{attempt: 1, mode: "sms", survey_id: survey.id}
+    assert 1 == put_retry_time(retry_stat_filter, timeout_at) |> RetryStat.count
 
     updated_respondent = Repo.get(Respondent, respondent.id)
     assert updated_respondent.state == "active"
@@ -1416,31 +1418,70 @@ defmodule Ask.BrokerTest do
     assert_received [:ask, ^test_channel, ^respondent, ^token, ReplyHelper.simple("Do you smoke?", "Do you smoke? Reply 1 for YES, 2 for NO")]
 
     # Set for immediate timeout
-    respondent = Repo.get(Respondent, respondent.id)
-    Respondent.changeset(respondent, %{timeout_at: Timex.now |> Timex.shift(minutes: -1)}) |> Repo.update
+    %Respondent{ timeout_at: timeout_at} = respondent = Repo.get(Respondent, respondent.id)
+
+    retry_stat_filter = %{attempt: 1, mode: "sms", survey_id: survey.id} |> put_retry_time(timeout_at)
+    assert 1 == retry_stat_filter |> RetryStat.count
+
+    timeout_at = Timex.now |> Timex.shift(minutes: -1)
+
+    Respondent.changeset(respondent, %{timeout_at: timeout_at}) |> Repo.update
+
+    retry_stat_filter = retry_stat_filter |> put_retry_time(timeout_at)
+    RetryStat.add!(retry_stat_filter)
 
     # Second poll, retry the question
     Broker.handle_info(:poll, nil)
+
+    retry_stat_count = RetryStat.count(retry_stat_filter)
+    assert 0 == retry_stat_count
+
     refute_received [:setup, _, _, _, _]
     assert_received [:ask, ^test_channel, %Respondent{sanitized_phone_number: ^phone_number}, _token, ReplyHelper.simple("Do you smoke?", "Do you smoke? Reply 1 for YES, 2 for NO")]
 
     # Set for immediate timeout
-    respondent = Repo.get(Respondent, respondent.id)
-    Respondent.changeset(respondent, %{timeout_at: Timex.now |> Timex.shift(minutes: -1)}) |> Repo.update
+    %Respondent{ timeout_at: timeout_at} = respondent = Repo.get(Respondent, respondent.id)
+
+    retry_stat_filter = %{attempt: 2, mode: "sms", survey_id: survey.id} |> put_retry_time(timeout_at)
+    assert 1 == retry_stat_filter |> RetryStat.count
+
+    timeout_at = Timex.now |> Timex.shift(minutes: -1)
+
+    Respondent.changeset(respondent, %{timeout_at: timeout_at}) |> Repo.update
+
+    retry_stat_filter = retry_stat_filter |> put_retry_time(timeout_at)
+    RetryStat.add!(retry_stat_filter)
 
     # Third poll, retry the question
     Broker.handle_info(:poll, nil)
     refute_received [:setup, _, _, _, _]
     assert_received [:ask, ^test_channel, %Respondent{sanitized_phone_number: ^phone_number}, _token, ReplyHelper.simple("Do you smoke?", "Do you smoke? Reply 1 for YES, 2 for NO")]
 
+    retry_stat_count = RetryStat.count(retry_stat_filter)
+    assert 0 == retry_stat_count
+
     # Set for immediate timeout
-    respondent = Repo.get(Respondent, respondent.id)
-    Respondent.changeset(respondent, %{timeout_at: Timex.now |> Timex.shift(minutes: -1)}) |> Repo.update
+    %Respondent{ timeout_at: timeout_at} = respondent = Repo.get(Respondent, respondent.id)
+
+    retry_stat_filter = %{attempt: 3, mode: "sms", survey_id: survey.id} |> put_retry_time(timeout_at)
+    assert 1 == retry_stat_filter |> RetryStat.count
+
+    timeout_at = Timex.now |> Timex.shift(minutes: -1)
+
+    Respondent.changeset(respondent, %{timeout_at: timeout_at}) |> Repo.update
+
+    retry_stat_filter = retry_stat_filter |> put_retry_time(timeout_at)
+    RetryStat.add!(retry_stat_filter)
 
     # Fourth poll, this time fallback to IVR channel
     Broker.handle_info(:poll, nil)
     assert_received [:setup, ^test_fallback_channel, %Respondent{sanitized_phone_number: ^phone_number}, _token]
+
+    retry_stat_count = RetryStat.count(retry_stat_filter)
+    assert 0 == retry_stat_count
   end
+
+  defp put_retry_time(filter, timeout_at), do: filter |> Map.put(:retry_time, Timex.format!(timeout_at, "%Y%0m%0d%H%M", :strftime))
 
   test "fallback respondent (IVR => SMS)" do
     test_channel = TestChannel.new
