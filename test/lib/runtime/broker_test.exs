@@ -451,8 +451,17 @@ defmodule Ask.BrokerTest do
     assert respondent.state == "active"
 
     # Set for immediate timeout
-    respondent = Repo.get!(Respondent, respondent.id)
-    Respondent.changeset(respondent, %{timeout_at: Timex.now |> Timex.shift(minutes: -1)}) |> Repo.update
+    %Respondent{ timeout_at: timeout_at} = respondent = Repo.get!(Respondent, respondent.id)
+
+    retry_stat_filter = %{attempt: 1, mode: "mobileweb", survey_id: survey.id} |> put_retry_time(timeout_at)
+    assert 1 == retry_stat_filter |> RetryStat.count
+
+    timeout_at = Timex.now |> Timex.shift(minutes: -1)
+
+    Respondent.changeset(respondent, %{timeout_at: timeout_at}) |> Repo.update
+
+    retry_stat_filter = retry_stat_filter |> put_retry_time(timeout_at)
+    RetryStat.add!(retry_stat_filter)
 
     # Second poll, retry the question
     Broker.poll
@@ -460,15 +469,31 @@ defmodule Ask.BrokerTest do
     assert_receive [:ask, ^test_channel, %Respondent{sanitized_phone_number: ^phone_number}, _, ReplyHelper.simple("Contact", message)]
     assert message == "Please enter #{Routes.mobile_survey_url(Ask.Endpoint, :index, respondent.id, token: Respondent.token(respondent.id))}"
 
+    retry_stat_count = RetryStat.count(retry_stat_filter)
+    assert 0 == retry_stat_count
+
     # Set for immediate timeout
-    respondent = Repo.get!(Respondent, respondent.id)
-    Respondent.changeset(respondent, %{timeout_at: Timex.now |> Timex.shift(minutes: -1)}) |> Repo.update
+    %Respondent{ timeout_at: timeout_at} = respondent = Repo.get!(Respondent, respondent.id)
+
+    retry_stat_filter = %{attempt: 2, mode: "mobileweb", survey_id: survey.id} |> put_retry_time(timeout_at)
+    assert 1 == retry_stat_filter |> RetryStat.count
+
+    timeout_at = Timex.now |> Timex.shift(minutes: -1)
+
+    Respondent.changeset(respondent, %{timeout_at: timeout_at}) |> Repo.update
+
+    retry_stat_filter = retry_stat_filter |> put_retry_time(timeout_at)
+    RetryStat.add!(retry_stat_filter)
 
     # Third poll, this time it should stall
     Broker.poll
 
+    retry_stat_count = RetryStat.count(retry_stat_filter)
+    assert 0 == retry_stat_count
+
     respondent = Repo.get(Respondent, respondent.id)
     assert respondent.state == "stalled"
+    refute respondent.timeout_at
 
     survey = Repo.get(Survey, survey.id)
     assert survey.state == "running"
