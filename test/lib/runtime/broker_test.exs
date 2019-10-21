@@ -469,8 +469,7 @@ defmodule Ask.BrokerTest do
     assert_receive [:ask, ^test_channel, %Respondent{sanitized_phone_number: ^phone_number}, _, ReplyHelper.simple("Contact", message)]
     assert message == "Please enter #{Routes.mobile_survey_url(Ask.Endpoint, :index, respondent.id, token: Respondent.token(respondent.id))}"
 
-    retry_stat_count = RetryStat.count(retry_stat_filter)
-    assert 0 == retry_stat_count
+    assert 0 == RetryStat.count(retry_stat_filter)
 
     # Set for immediate timeout
     %Respondent{ timeout_at: timeout_at} = respondent = Repo.get!(Respondent, respondent.id)
@@ -488,8 +487,7 @@ defmodule Ask.BrokerTest do
     # Third poll, this time it should stall
     Broker.poll
 
-    retry_stat_count = RetryStat.count(retry_stat_filter)
-    assert 0 == retry_stat_count
+    assert 0 == RetryStat.count(retry_stat_filter)
 
     respondent = Repo.get(Respondent, respondent.id)
     assert respondent.state == "stalled"
@@ -1458,8 +1456,7 @@ defmodule Ask.BrokerTest do
     # Second poll, retry the question
     Broker.handle_info(:poll, nil)
 
-    retry_stat_count = RetryStat.count(retry_stat_filter)
-    assert 0 == retry_stat_count
+    assert 0 == RetryStat.count(retry_stat_filter)
 
     refute_received [:setup, _, _, _, _]
     assert_received [:ask, ^test_channel, %Respondent{sanitized_phone_number: ^phone_number}, _token, ReplyHelper.simple("Do you smoke?", "Do you smoke? Reply 1 for YES, 2 for NO")]
@@ -1482,8 +1479,7 @@ defmodule Ask.BrokerTest do
     refute_received [:setup, _, _, _, _]
     assert_received [:ask, ^test_channel, %Respondent{sanitized_phone_number: ^phone_number}, _token, ReplyHelper.simple("Do you smoke?", "Do you smoke? Reply 1 for YES, 2 for NO")]
 
-    retry_stat_count = RetryStat.count(retry_stat_filter)
-    assert 0 == retry_stat_count
+    assert 0 == RetryStat.count(retry_stat_filter)
 
     # Set for immediate timeout
     %Respondent{ timeout_at: timeout_at} = respondent = Repo.get(Respondent, respondent.id)
@@ -1502,8 +1498,7 @@ defmodule Ask.BrokerTest do
     Broker.handle_info(:poll, nil)
     assert_received [:setup, ^test_fallback_channel, %Respondent{sanitized_phone_number: ^phone_number}, _token]
 
-    retry_stat_count = RetryStat.count(retry_stat_filter)
-    assert 0 == retry_stat_count
+    assert 0 == RetryStat.count(retry_stat_filter)
   end
 
   defp put_retry_time(filter, timeout_at), do: filter |> Map.put(:retry_time, Timex.format!(timeout_at, "%Y%0m%0d%H%M", :strftime))
