@@ -739,7 +739,7 @@ defmodule Ask.BrokerTest do
   end
 
   test "mark disposition as completed when partial on end" do
-    [_survey, _group, test_channel, _respondent, phone_number] = create_running_survey_with_channel_and_respondent(@flag_steps_partial_skip_logic)
+    [survey, _group, test_channel, _respondent, phone_number] = create_running_survey_with_channel_and_respondent(@flag_steps_partial_skip_logic)
 
     {:ok, _} = Broker.start_link
 
@@ -748,8 +748,14 @@ defmodule Ask.BrokerTest do
     assert_received [:setup, ^test_channel, respondent = %Respondent{sanitized_phone_number: ^phone_number}, token]
     assert_received [:ask, ^test_channel, ^respondent, ^token, ReplyHelper.simple("Do you exercise?", "Do you exercise? Reply 1 for YES, 2 for NO")]
 
-    respondent = Repo.get!(Respondent, respondent.id)
+    %Respondent{ timeout_at: timeout_at} = respondent = Repo.get!(Respondent, respondent.id)
+
+    retry_stat_filter = %{attempt: 1, mode: "sms", survey_id: survey.id} |> put_retry_time(timeout_at)
+    assert 1 == retry_stat_filter |> RetryStat.count
+
     Broker.sync_step(respondent, Flow.Message.reply("Yes"))
+
+    assert 0 == retry_stat_filter |> RetryStat.count
 
     respondent = Repo.get!(Respondent, respondent.id)
     assert respondent.state == "completed"

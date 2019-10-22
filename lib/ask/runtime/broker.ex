@@ -431,7 +431,14 @@ defmodule Ask.Runtime.Broker do
     :end
   end
 
-  defp handle_session_step({:end, reply, respondent}) do
+  defp handle_session_step({:end, _, %Respondent{session: %{"current_mode" => %{"mode" => mode}}} = respondent} = params) do
+    substract_retry_stat(respondent, mode)
+    handle_session_step_p(params)
+  end
+
+  defp handle_session_step({:end, _, _} = params), do: handle_session_step_p(params)
+
+  defp handle_session_step_p({:end, reply, respondent}) do
     update_respondent(respondent, :end, Reply.disposition(reply))
 
     case Reply.steps(reply) do
