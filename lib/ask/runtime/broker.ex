@@ -205,13 +205,13 @@ defmodule Ask.Runtime.Broker do
     |> Enum.each(&start(survey, &1))
   end
 
-  def retry_respondent(%Respondent{ timeout_at: timeout_at} = respondent) do
+  def retry_respondent(respondent) do
     session = respondent.session |> Session.load
     mode = session.current_mode |> SessionMode.mode
 
     Repo.transaction(fn ->
       try do
-        RetryStat.subtract!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: Timex.format!(timeout_at, "%Y%0m%0d%H%M", :strftime), survey_id: respondent.survey_id})
+        substract_retry_stat(respondent, mode)
         handle_session_step(Session.timeout(session))
       rescue
         e in Ecto.StaleEntryError ->
@@ -222,6 +222,9 @@ defmodule Ask.Runtime.Broker do
       end
     end)
   end
+
+  defp substract_retry_stat(%Respondent{} = respondent, "ivr" = mode), do: RetryStat.subtract!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: "", survey_id: respondent.survey_id})
+  defp substract_retry_stat(%Respondent{ timeout_at: timeout_at} = respondent, mode), do: RetryStat.subtract!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: Timex.format!(timeout_at, "%Y%0m%0d%H%M", :strftime), survey_id: respondent.survey_id})
 
   defp start(survey, respondent) do
     survey = Repo.preload(survey, [:questionnaires])
@@ -569,6 +572,7 @@ defmodule Ask.Runtime.Broker do
     |> update_quota_bucket(old_disposition, respondent.session["count_partial_results"])
   end
 
+  defp insert_retry_stat(%Respondent{disposition: "queued"} = respondent, "ivr" = mode, _), do: RetryStat.add!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: "", survey_id: respondent.survey_id})
   defp insert_retry_stat(%Respondent{disposition: "queued"} = respondent, mode, timeout_at), do: RetryStat.add!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: Timex.format!(timeout_at, "%Y%0m%0d%H%M", :strftime), survey_id: respondent.survey_id})
   defp insert_retry_stat(_, _, _), do: nil
 
