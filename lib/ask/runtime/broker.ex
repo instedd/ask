@@ -207,11 +207,10 @@ defmodule Ask.Runtime.Broker do
 
   def retry_respondent(respondent) do
     session = respondent.session |> Session.load
-    mode = session.current_mode |> SessionMode.mode
 
     Repo.transaction(fn ->
       try do
-        substract_retry_stat(respondent, mode)
+        substract_retry_stat(respondent)
         handle_session_step(Session.timeout(session))
       rescue
         e in Ecto.StaleEntryError ->
@@ -419,7 +418,7 @@ defmodule Ask.Runtime.Broker do
   end
 
   defp handle_session_step({:ok, %{respondent: respondent} = session, reply, timeout}) do
-    increase_retry_stat(respondent, session.current_mode |> SessionMode.mode, next_timeout(respondent, timeout))
+    increase_retry_stat(session, timeout)
     update_respondent(respondent, {:ok, session, timeout}, Reply.disposition(reply))
     {:reply, reply}
   end
@@ -429,12 +428,17 @@ defmodule Ask.Runtime.Broker do
     :end
   end
 
-  defp handle_session_step({:end, _, %Respondent{session: %{"current_mode" => %{"mode" => mode}}} = respondent} = params) do
-    substract_retry_stat(respondent, mode)
-    handle_session_step_p(params)
-  end
+  defp handle_session_step({:end, reply, respondent}) do
+    substract_retry_stat(respondent)
+    update_respondent(respondent, :end, Reply.disposition(reply))
 
-  defp handle_session_step({:end, _, _} = params), do: handle_session_step_p(params)
+    case Reply.steps(reply) do
+      [] ->
+        :end
+      _ ->
+        {:end, {:reply, reply}}
+    end
+  end
 
   defp handle_session_step({:rejected, reply, respondent}) do
     update_respondent(respondent, :rejected)
@@ -463,17 +467,6 @@ defmodule Ask.Runtime.Broker do
   defp handle_session_step({:failed, respondent}) do
     update_respondent(respondent, :failed)
     :end
-  end
-
-  defp handle_session_step_p({:end, reply, respondent}) do
-    update_respondent(respondent, :end, Reply.disposition(reply))
-
-    case Reply.steps(reply) do
-      [] ->
-        :end
-      _ ->
-        {:end, {:reply, reply}}
-    end
   end
 
   defp match_condition(responses, bucket) do
@@ -647,10 +640,14 @@ defmodule Ask.Runtime.Broker do
     Survey.estimated_success_rate(initial_success_rate, current_success_rate, completion_rate)
   end
 
-  defp increase_retry_stat(%Respondent{disposition: "queued"} = respondent, "ivr" = mode, _), do: RetryStat.add!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: "", survey_id: respondent.survey_id})
-  defp increase_retry_stat(%Respondent{disposition: "queued"} = respondent, mode, timeout_at), do: RetryStat.add!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: Timex.format!(timeout_at, "%Y%0m%0d%H%M", :strftime), survey_id: respondent.survey_id})
-  defp increase_retry_stat(_, _, _), do: nil
+  defp increase_retry_stat(%Session{respondent: %Respondent{disposition: "queued"} = respondent, current_mode: %Ask.Runtime.IVRMode{}}, _), do: RetryStat.add!(%{attempt: respondent.stats.attempts["ivr"], mode: "ivr", retry_time: "", survey_id: respondent.survey_id})
+  defp increase_retry_stat(%Session{respondent: %Respondent{disposition: "queued"} = respondent, current_mode: current_mode}, timeout) do
+    mode = current_mode |> SessionMode.mode
+    RetryStat.add!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: respondent |> next_timeout(timeout) |> Timex.format!("%Y%0m%0d%H%M", :strftime), survey_id: respondent.survey_id})
+  end
+  defp increase_retry_stat(_, _), do: nil
 
-  defp substract_retry_stat(%Respondent{} = respondent, "ivr" = mode), do: RetryStat.subtract!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: "", survey_id: respondent.survey_id})
-  defp substract_retry_stat(%Respondent{ timeout_at: timeout_at} = respondent, mode), do: RetryStat.subtract!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: Timex.format!(timeout_at, "%Y%0m%0d%H%M", :strftime), survey_id: respondent.survey_id})
+  defp substract_retry_stat(%Respondent{session: %{"current_mode" => %{"mode" => "ivr"}}, survey_id: survey_id, stats: %{attempts: attempts}}), do: RetryStat.subtract!(%{attempt: attempts["ivr"], mode: "ivr", retry_time: "", survey_id: survey_id})
+  defp substract_retry_stat(%Respondent{session: %{"current_mode" => %{"mode" => mode}}, survey_id: survey_id, stats: %{attempts: attempts}, timeout_at: timeout_at}), do: RetryStat.subtract!(%{attempt: attempts[mode], mode: mode, retry_time: Timex.format!(timeout_at, "%Y%0m%0d%H%M", :strftime), survey_id: survey_id})
+  defp substract_retry_stat(_), do: nil
 end
