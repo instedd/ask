@@ -422,6 +422,7 @@ defmodule Ask.Runtime.Broker do
   end
 
   defp handle_session_step({:ok, %{respondent: respondent} = session, reply, timeout}) do
+    insert_retry_stat(respondent, session.current_mode |> SessionMode.mode, next_timeout(respondent, timeout))
     update_respondent(respondent, {:ok, session, timeout}, Reply.disposition(reply))
     {:reply, reply}
   end
@@ -437,17 +438,6 @@ defmodule Ask.Runtime.Broker do
   end
 
   defp handle_session_step({:end, _, _} = params), do: handle_session_step_p(params)
-
-  defp handle_session_step_p({:end, reply, respondent}) do
-    update_respondent(respondent, :end, Reply.disposition(reply))
-
-    case Reply.steps(reply) do
-      [] ->
-        :end
-      _ ->
-        {:end, {:reply, reply}}
-    end
-  end
 
   defp handle_session_step({:rejected, reply, respondent}) do
     update_respondent(respondent, :rejected)
@@ -476,6 +466,17 @@ defmodule Ask.Runtime.Broker do
   defp handle_session_step({:failed, respondent}) do
     update_respondent(respondent, :failed)
     :end
+  end
+
+  defp handle_session_step_p({:end, reply, respondent}) do
+    update_respondent(respondent, :end, Reply.disposition(reply))
+
+    case Reply.steps(reply) do
+      [] ->
+        :end
+      _ ->
+        {:end, {:reply, reply}}
+    end
   end
 
   defp match_condition(responses, bucket) do
@@ -541,7 +542,6 @@ defmodule Ask.Runtime.Broker do
       end
 
     timeout_at = next_timeout(respondent, timeout)
-    insert_retry_stat(respondent, session.current_mode |> SessionMode.mode, timeout_at)
     respondent
     |> Respondent.changeset(%{state: "active", session: Session.dump(session), timeout_at: timeout_at, language: session.flow.language, effective_modes: effective_modes})
     |> Repo.update!
