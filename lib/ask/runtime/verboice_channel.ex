@@ -241,7 +241,7 @@ defmodule Ask.Runtime.VerboiceChannel do
     |> Repo.update!
   end
 
-  defp update_retry_stat(%Respondent{timeout_at: timeout_at, survey_id: survey_id, stats: %{attempts: attempts}}) do
+  defp set_retry_stat_timeout(%Respondent{timeout_at: timeout_at, survey_id: survey_id, stats: %{attempts: attempts}}) do
     RetryStat.subtract!(%{attempt: attempts["ivr"], mode: "ivr", retry_time: "", survey_id: survey_id})
     RetryStat.add!(%{attempt: attempts["ivr"], mode: "ivr", retry_time: Timex.format!(timeout_at, "%Y%0m%0d%H%M", :strftime), survey_id: survey_id})
   end
@@ -252,7 +252,7 @@ defmodule Ask.Runtime.VerboiceChannel do
     |> update_call_time_seconds(call_duration)
     case status do
       s when s in ["failed", "busy", "no-answer", "expired"] ->
-        update_retry_stat(respondent)
+        set_retry_stat_timeout(respondent)
 
         channel_failed(respondent, status, params)
       _ -> :ok

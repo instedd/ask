@@ -223,9 +223,6 @@ defmodule Ask.Runtime.Broker do
     end)
   end
 
-  defp substract_retry_stat(%Respondent{} = respondent, "ivr" = mode), do: RetryStat.subtract!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: "", survey_id: respondent.survey_id})
-  defp substract_retry_stat(%Respondent{ timeout_at: timeout_at} = respondent, mode), do: RetryStat.subtract!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: Timex.format!(timeout_at, "%Y%0m%0d%H%M", :strftime), survey_id: respondent.survey_id})
-
   defp start(survey, respondent) do
     survey = Repo.preload(survey, [:questionnaires])
     group = respondent.respondent_group
@@ -422,7 +419,7 @@ defmodule Ask.Runtime.Broker do
   end
 
   defp handle_session_step({:ok, %{respondent: respondent} = session, reply, timeout}) do
-    insert_retry_stat(respondent, session.current_mode |> SessionMode.mode, next_timeout(respondent, timeout))
+    increase_retry_stat(respondent, session.current_mode |> SessionMode.mode, next_timeout(respondent, timeout))
     update_respondent(respondent, {:ok, session, timeout}, Reply.disposition(reply))
     {:reply, reply}
   end
@@ -579,10 +576,6 @@ defmodule Ask.Runtime.Broker do
     |> update_quota_bucket(old_disposition, respondent.session["count_partial_results"])
   end
 
-  defp insert_retry_stat(%Respondent{disposition: "queued"} = respondent, "ivr" = mode, _), do: RetryStat.add!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: "", survey_id: respondent.survey_id})
-  defp insert_retry_stat(%Respondent{disposition: "queued"} = respondent, mode, timeout_at), do: RetryStat.add!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: Timex.format!(timeout_at, "%Y%0m%0d%H%M", :strftime), survey_id: respondent.survey_id})
-  defp insert_retry_stat(_, _, _), do: nil
-
   defp update_respondent_and_set_disposition(respondent, session, dump, timeout, timeout_at, disposition, state) do
     old_disposition = respondent.disposition
     if Flow.should_update_disposition(old_disposition, disposition) do
@@ -653,4 +646,11 @@ defmodule Ask.Runtime.Broker do
     initial_success_rate = Survey.initial_success_rate()
     Survey.estimated_success_rate(initial_success_rate, current_success_rate, completion_rate)
   end
+
+  defp increase_retry_stat(%Respondent{disposition: "queued"} = respondent, "ivr" = mode, _), do: RetryStat.add!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: "", survey_id: respondent.survey_id})
+  defp increase_retry_stat(%Respondent{disposition: "queued"} = respondent, mode, timeout_at), do: RetryStat.add!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: Timex.format!(timeout_at, "%Y%0m%0d%H%M", :strftime), survey_id: respondent.survey_id})
+  defp increase_retry_stat(_, _, _), do: nil
+
+  defp substract_retry_stat(%Respondent{} = respondent, "ivr" = mode), do: RetryStat.subtract!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: "", survey_id: respondent.survey_id})
+  defp substract_retry_stat(%Respondent{ timeout_at: timeout_at} = respondent, mode), do: RetryStat.subtract!(%{attempt: respondent.stats.attempts[mode], mode: mode, retry_time: Timex.format!(timeout_at, "%Y%0m%0d%H%M", :strftime), survey_id: respondent.survey_id})
 end
