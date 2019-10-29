@@ -667,6 +667,43 @@ defmodule Ask.SessionTest do
     assert {:rejected, %{steps: [%{prompts: ["Quota completed"]}]}, _} = Session.sync_step(session, Flow.Message.reply("25"))
   end
 
+  test "accepts respondent in bucket upper bound", %{quiz: quiz, respondent: respondent, channel: channel} do
+    survey = respondent.survey
+
+    quotas = %{
+      "vars" => ["Perfect Number"],
+      "buckets" => [
+        %{
+          "condition" => [%{"store" => "Perfect Number", "value" => [18, 29]}],
+          "quota" => 1,
+          "count" => 0
+        },
+        %{
+          "condition" => [%{"store" => "Perfect Number", "value" => [30, 79]}],
+          "quota" => 1,
+          "count" => 0
+        },
+        %{
+          "condition" => [%{"store" => "Perfect Number", "value" => [80, 120]}],
+          "quota" => 1,
+          "count" => 0
+        },
+      ]
+    }
+
+    survey
+    |> Repo.preload([:quota_buckets])
+    |> Survey.changeset(%{quotas: quotas})
+    |> Repo.update!
+
+    respondent = Respondent |> Repo.get(respondent.id)
+
+    {:ok, session, _, _, _} = Session.start(quiz, respondent, channel, "sms", Schedule.always())
+    {:ok, session, _, _, _} = Session.sync_step(session, Flow.Message.reply("N"))
+    {:ok, session, _, _, _} = Session.sync_step(session, Flow.Message.reply("Y"))
+    {:ok, _, %{stores: %{"Perfect Number" => "120"}}, _, _} = Session.sync_step(session, Flow.Message.reply("120"))
+  end
+
   test "ends only after completing the quota questions", %{quiz: quiz, respondent: respondent, channel: channel} do
     survey = respondent.survey
 

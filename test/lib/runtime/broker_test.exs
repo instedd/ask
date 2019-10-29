@@ -3871,6 +3871,47 @@ defmodule Ask.BrokerTest do
     :ok = channel_status_server |> GenServer.stop
   end
 
+  test "accepts respondent in bucket upper bound" do
+    [survey, _group, _test_channel, respondent, _phone_number] = create_running_survey_with_channel_and_respondent()
+
+    quotas = %{
+      "vars" => ["Perfect Number"],
+      "buckets" => [
+        %{
+          "condition" => [%{"store" => "Perfect Number", "value" => [18, 29]}],
+          "quota" => 1,
+          "count" => 0
+        },
+        %{
+          "condition" => [%{"store" => "Perfect Number", "value" => [30, 79]}],
+          "quota" => 1,
+          "count" => 0
+        },
+        %{
+          "condition" => [%{"store" => "Perfect Number", "value" => [80, 120]}],
+          "quota" => 1,
+          "count" => 0
+        },
+      ]
+    }
+
+    survey
+    |> Repo.preload([:quota_buckets])
+    |> Survey.changeset(%{quotas: quotas})
+    |> Repo.update!
+
+    {:ok, broker} = Broker.start_link
+    Broker.poll
+
+    _reply = Broker.sync_step(Repo.get(Respondent, respondent.id), Flow.Message.reply("2"))
+    _reply = Broker.sync_step(Repo.get(Respondent, respondent.id), Flow.Message.reply("2"))
+
+    assert {:reply, %{stores: %{"Perfect Number" => "120"}}} = Broker.sync_step(Repo.get(Respondent, respondent.id), Flow.Message.reply("120"))
+    assert %{disposition: "started"} = Respondent |> Repo.get(respondent.id)
+
+    :ok = broker |> GenServer.stop
+  end
+
   def create_running_survey_with_channel_and_respondent(steps \\ @dummy_steps, mode \\ "sms") do
     test_channel = TestChannel.new(false, mode == "sms")
 
