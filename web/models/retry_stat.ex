@@ -3,11 +3,12 @@ defmodule Ask.RetryStat do
   import Ecto.Changeset
   import Ecto.Query
   alias Ask.{RetryStat, Repo}
+  alias Ask.Ecto.Type.JSON
 
   schema "retry_stats" do
     field(:attempt, :integer)
     field(:count, :integer)
-    field(:mode, :string)
+    field(:mode, JSON)
     field(:retry_time, :string)
     belongs_to(:survey, Ask.Survey)
 

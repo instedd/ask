@@ -496,10 +496,10 @@ defmodule Ask.Runtime.VerboiceChannelTest do
       survey = Repo.get(Survey, survey.id)
       assert survey.state == "running"
 
-      respondent = Repo.get(Respondent, respondent.id)
+      %Respondent{mode: mode} = respondent = Repo.get(Respondent, respondent.id)
       assert respondent.state == "active"
 
-      retry_stat_filter = %{attempt: 1, mode: "ivr", survey_id: survey.id, retry_time: ""}
+      retry_stat_filter = %{attempt: 1, mode: mode, survey_id: survey.id, retry_time: ""}
       assert 1 == retry_stat_filter |> RetryStat.count
 
       VerboiceChannel.callback(conn, %{"path" => ["status", respondent.id, "token"], "CallStatus" => "expired", "CallDuration" => "16"})
