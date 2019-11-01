@@ -111,4 +111,46 @@ defmodule Ask.SurveyTest do
 
     assert survey_channels_ids == [channel_1.id, channel_2.id, channel_3.id]
   end
+
+  describe "retries histogram" do
+    test "flow with no retries" do
+      mode = ["sms"]
+      survey = insert(:survey)
+      %{flow: flow} = survey |> Survey.retries_histogram(mode)
+
+      assert flow == [%{type: "sms", delay: 0}]
+    end
+
+    test "flow with no fallbacks" do
+      mode = ["sms"]
+      survey = insert(:survey, %{sms_retry_configuration: "1h 2h 3h"})
+      %{flow: flow} = survey |> Survey.retries_histogram(mode)
+
+      assert flow == [%{type: "sms", delay: 0}, %{type: "sms", delay: 1, label: "1h"}, %{type: "sms", delay: 2, label: "2h"}, %{type: "sms", delay: 3, label: "3h"}]
+    end
+
+    test "flow with 1 fallback" do
+      mode = ["sms", "ivr"]
+      survey = insert(:survey, %{sms_retry_configuration: "1h 2h 3h", ivr_retry_configuration: "5h 6h 7h", fallback_delay: "4h"})
+      %{flow: flow} = survey |> Survey.retries_histogram(mode)
+
+      assert flow == [
+        %{type: "sms", delay: 0}, %{type: "sms", delay: 1, label: "1h"}, %{type: "sms", delay: 2, label: "2h"}, %{type: "sms", delay: 3, label: "3h"},
+        %{type: "ivr", delay: 4, label: "4h"}, %{type: "ivr", delay: 5, label: "5h"}, %{type: "ivr", delay: 6, label: "6h"}, %{type: "ivr", delay: 7, label: "7h"}
+      ]
+    end
+
+    test "flow with 2 fallbacks" do
+      mode = ["mobileweb", "ivr", "sms"]
+      survey = insert(:survey, %{sms_retry_configuration: "1h 2h 3h", ivr_retry_configuration: "5h 6h 7h", mobileweb_retry_configuration: "2h 5h 8h", fallback_delay: "4h"})
+      %{flow: flow} = survey |> Survey.retries_histogram(mode)
+
+      assert flow == [
+        %{type: "mobileweb", delay: 0}, %{type: "mobileweb", delay: 2, label: "2h"}, %{type: "mobileweb", delay: 5, label: "5h"}, %{type: "mobileweb", delay: 8, label: "8h"},
+        %{type: "ivr", delay: 4,
+         label: "4h"}, %{type: "ivr", delay: 5, label: "5h"}, %{type: "ivr", delay: 6, label: "6h"}, %{type: "ivr", delay: 7, label: "7h"},
+        %{type: "sms", delay: 4, label: "4h"}, %{type: "sms", delay: 1, label: "1h"}, %{type: "sms", delay: 2, label: "2h"}, %{type: "sms", delay: 3, label: "3h"}
+      ]
+    end
+  end
 end

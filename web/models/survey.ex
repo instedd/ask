@@ -427,6 +427,44 @@ defmodule Ask.Survey do
     }
   end
 
+  def retries_histogram(%Survey{} = survey, mode) do
+    %{
+      flow: survey |> retries_histogram_flow(mode)
+    }
+  end
+
+  defp retries_histogram_flow(%Survey{} = survey, mode_sequence) do
+    mode_sequence
+    |> Stream.with_index()
+    |> Enum.reduce([], fn {mode, idx}, acc -> acc ++ flow_retries(survey, mode, idx) end)
+  end
+
+  defp flow_retries(survey, mode, 0) do
+    flow_retries_with_fallback(survey, mode)
+  end
+
+  defp flow_retries(survey, mode, _) do
+    fallback_delay = Kernel.round(fallback_delay(survey) / 60)
+    flow_retries_with_fallback(survey, mode, fallback_delay)
+  end
+
+  defp flow_retries_with_fallback(survey, mode, fallback_delay \\ 0) do
+    delay_hours =
+      survey
+      |> retries_configuration(mode)
+      |> Enum.map(fn retry_minutes -> Kernel.round(retry_minutes / 60) end)
+
+    [
+      fallback_delay |> flow_retry(mode)
+      | delay_hours |> Enum.map(fn retry_hour -> flow_retry(retry_hour, mode) end)
+    ]
+  end
+
+  defp flow_retry(0, mode), do: %{delay: 0, type: mode}
+
+  defp flow_retry(delay_hours, mode),
+    do: %{delay: delay_hours, label: "#{delay_hours}h", type: mode}
+
   defp respondents_count(respondents_by_state) do
     filter_key_list = ["active", "pending", "stalled"]
     Map.take(respondents_by_state, filter_key_list)|> Enum.reduce(0, fn({_k, total}, acc) -> total + acc end)
