@@ -60,7 +60,24 @@ defmodule Ask.RetryStat do
     end
   end
 
+  def count(%{overdue: true} = filter), do: filter |> count_overdue() |> clean_overdue_count()
+
   def count(filter), do: count_stat(get(filter))
+
+  defp count_overdue(%{attempt: attempt, mode: mode, retry_time: retry_time, survey_id: survey_id}),
+       do:
+         Repo.all(
+           from(
+             rs in RetryStat,
+             select: sum(rs.count),
+             where:
+               rs.attempt == ^attempt and rs.mode == ^mode and rs.retry_time <= ^retry_time and
+                 rs.survey_id == ^survey_id
+           )
+         )
+
+  defp clean_overdue_count([nil]), do: 0
+  defp clean_overdue_count([count]), do: count |> Decimal.to_integer()
 
   defp count_stat(nil), do: 0
   defp count_stat(stat), do: stat.count

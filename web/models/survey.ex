@@ -459,7 +459,7 @@ defmodule Ask.Survey do
     retry_time = Timex.now() |> retry_time()
 
     count =
-      %{attempt: attempt, mode: mode, retry_time: retry_time, survey_id: survey_id}
+      %{attempt: attempt, mode: mode, retry_time: retry_time, survey_id: survey_id, overdue: true}
       |> RetryStat.count()
 
     [%{hour: absolute_delay, respondents: count}]

@@ -278,6 +278,27 @@ defmodule Ask.SurveyTest do
                %{hour: 3, respondents: 2}
              ]
     end
+
+    test "actives sms with 1 retry, 1 active and 2 overdue in 2nd attempt" do
+      mode = ["sms"]
+      survey = insert(:survey, %{sms_retry_configuration: "2h"})
+
+      retry_time = Timex.now() |> Timex.shift(hours: -2) |> retry_time()
+      filter = %{attempt: 2, mode: mode, retry_time: retry_time, survey_id: survey.id}
+      RetryStat.add!(filter)
+
+      retry_time = Timex.now() |> Timex.shift(hours: -1) |> retry_time()
+      filter = %{attempt: 2, mode: mode, retry_time: retry_time, survey_id: survey.id}
+      RetryStat.add!(filter)
+
+      retry_time = Timex.now() |> retry_time()
+      filter = %{attempt: 2, mode: mode, retry_time: retry_time, survey_id: survey.id}
+      RetryStat.add!(filter)
+
+      %{actives: actives} = survey |> Survey.retries_histogram(mode)
+
+      assert actives == [%{hour: 2, respondents: 3}]
+    end
   end
 
   defp retry_time(time), do: Timex.format!(time, "%Y%0m%0d%H%M", :strftime)
