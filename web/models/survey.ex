@@ -18,7 +18,8 @@ defmodule Ask.Survey do
     FloipEndpoint,
     Folder,
     RespondentStats,
-    ConfigHelper
+    ConfigHelper,
+    RetryStat
   }
   alias Ask.Runtime.{Broker, ChannelStatusServer}
   alias Ask.Ecto.Type.JSON
@@ -427,17 +428,63 @@ defmodule Ask.Survey do
     }
   end
 
-  def retries_histogram(%Survey{} = survey, mode) do
-    %{
-      flow: survey |> retries_histogram_flow(mode)
+  def retries_histogram(%Survey{} = survey, mode),
+    do: %{
+      flow: survey |> retries_histogram_flow(mode),
+      actives: survey |> retries_histogram_actives(mode) |> clean_empty_slots()
     }
+
+  defp retries_histogram_actives(%Survey{id: survey_id} = survey, mode) do
+    survey
+    |> retries_histogram_flow(mode)
+    |> absolute_delay_flow()
+    |> Stream.with_index()
+    |> Enum.reduce([], fn {%{absolute_delay: absolute_delay, delay: delay}, idx}, acc ->
+      acc ++ attempt_respondents(survey_id, mode, idx + 1, delay - 1, absolute_delay)
+    end)
   end
 
-  defp retries_histogram_flow(%Survey{} = survey, mode_sequence) do
-    mode_sequence
-    |> Stream.with_index()
-    |> Enum.reduce([], fn {mode, idx}, acc -> acc ++ flow_retries(survey, mode, idx) end)
+  defp attempt_respondents(survey_id, mode, attempt, delay, absolute_delay) when delay > 0 do
+    retry_time = Timex.now() |> Timex.shift(hours: delay) |> retry_time()
+
+    count =
+      %{attempt: attempt, mode: mode, retry_time: retry_time, survey_id: survey_id}
+      |> RetryStat.count()
+
+    [%{hour: absolute_delay - delay, respondents: count}] ++
+      attempt_respondents(survey_id, mode, attempt, delay - 1, absolute_delay)
   end
+
+  defp attempt_respondents(survey_id, mode, attempt, _, absolute_delay) do
+    retry_time = Timex.now() |> retry_time()
+
+    count =
+      %{attempt: attempt, mode: mode, retry_time: retry_time, survey_id: survey_id}
+      |> RetryStat.count()
+
+    [%{hour: absolute_delay, respondents: count}]
+  end
+
+  defp absolute_delay_flow(flow) do
+    {flow, _} =
+      flow
+      |> Enum.map_reduce(0, fn %{type: type, delay: delay}, acc_delay ->
+        {%{type: type, delay: delay, absolute_delay: delay + acc_delay}, delay + acc_delay}
+      end)
+
+    flow
+  end
+
+  defp clean_empty_slots(slots),
+    do: slots |> Enum.filter(fn %{respondents: count} -> count > 0 end)
+
+  defp retry_time(time), do: Timex.format!(time, "%Y%0m%0d%H%M", :strftime)
+
+  defp retries_histogram_flow(%Survey{} = survey, mode_sequence),
+    do:
+      mode_sequence
+      |> Stream.with_index()
+      |> Enum.reduce([], fn {mode, idx}, acc -> acc ++ flow_retries(survey, mode, idx) end)
 
   defp flow_retries(survey, mode, 0) do
     flow_retries_with_fallback(survey, mode)

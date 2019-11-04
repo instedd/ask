@@ -2,7 +2,7 @@ defmodule Ask.SurveyTest do
   use Ask.ModelCase
   use Ask.TestHelpers
 
-  alias Ask.Survey
+  alias Ask.{Survey, RetryStat}
 
   @valid_attrs %{name: "some content", schedule: Ask.Schedule.default()}
   @invalid_attrs %{}
@@ -126,31 +126,159 @@ defmodule Ask.SurveyTest do
       survey = insert(:survey, %{sms_retry_configuration: "1h 2h 3h"})
       %{flow: flow} = survey |> Survey.retries_histogram(mode)
 
-      assert flow == [%{type: "sms", delay: 0}, %{type: "sms", delay: 1, label: "1h"}, %{type: "sms", delay: 2, label: "2h"}, %{type: "sms", delay: 3, label: "3h"}]
+      assert flow == [
+               %{type: "sms", delay: 0},
+               %{type: "sms", delay: 1, label: "1h"},
+               %{type: "sms", delay: 2, label: "2h"},
+               %{type: "sms", delay: 3, label: "3h"}
+             ]
     end
 
     test "flow with 1 fallback" do
       mode = ["sms", "ivr"]
-      survey = insert(:survey, %{sms_retry_configuration: "1h 2h 3h", ivr_retry_configuration: "5h 6h 7h", fallback_delay: "4h"})
+
+      survey =
+        insert(:survey, %{
+          sms_retry_configuration: "1h 2h 3h",
+          ivr_retry_configuration: "5h 6h 7h",
+          fallback_delay: "4h"
+        })
+
       %{flow: flow} = survey |> Survey.retries_histogram(mode)
 
       assert flow == [
-        %{type: "sms", delay: 0}, %{type: "sms", delay: 1, label: "1h"}, %{type: "sms", delay: 2, label: "2h"}, %{type: "sms", delay: 3, label: "3h"},
-        %{type: "ivr", delay: 4, label: "4h"}, %{type: "ivr", delay: 5, label: "5h"}, %{type: "ivr", delay: 6, label: "6h"}, %{type: "ivr", delay: 7, label: "7h"}
-      ]
+               %{type: "sms", delay: 0},
+               %{type: "sms", delay: 1, label: "1h"},
+               %{type: "sms", delay: 2, label: "2h"},
+               %{type: "sms", delay: 3, label: "3h"},
+               %{type: "ivr", delay: 4, label: "4h"},
+               %{type: "ivr", delay: 5, label: "5h"},
+               %{type: "ivr", delay: 6, label: "6h"},
+               %{type: "ivr", delay: 7, label: "7h"}
+             ]
     end
 
     test "flow with 2 fallbacks" do
       mode = ["mobileweb", "ivr", "sms"]
-      survey = insert(:survey, %{sms_retry_configuration: "1h 2h 3h", ivr_retry_configuration: "5h 6h 7h", mobileweb_retry_configuration: "2h 5h 8h", fallback_delay: "4h"})
+
+      survey =
+        insert(:survey, %{
+          sms_retry_configuration: "1h 2h 3h",
+          ivr_retry_configuration: "5h 6h 7h",
+          mobileweb_retry_configuration: "2h 5h 8h",
+          fallback_delay: "4h"
+        })
+
       %{flow: flow} = survey |> Survey.retries_histogram(mode)
 
       assert flow == [
-        %{type: "mobileweb", delay: 0}, %{type: "mobileweb", delay: 2, label: "2h"}, %{type: "mobileweb", delay: 5, label: "5h"}, %{type: "mobileweb", delay: 8, label: "8h"},
-        %{type: "ivr", delay: 4,
-         label: "4h"}, %{type: "ivr", delay: 5, label: "5h"}, %{type: "ivr", delay: 6, label: "6h"}, %{type: "ivr", delay: 7, label: "7h"},
-        %{type: "sms", delay: 4, label: "4h"}, %{type: "sms", delay: 1, label: "1h"}, %{type: "sms", delay: 2, label: "2h"}, %{type: "sms", delay: 3, label: "3h"}
-      ]
+               %{type: "mobileweb", delay: 0},
+               %{type: "mobileweb", delay: 2, label: "2h"},
+               %{type: "mobileweb", delay: 5, label: "5h"},
+               %{type: "mobileweb", delay: 8, label: "8h"},
+               %{type: "ivr", delay: 4, label: "4h"},
+               %{type: "ivr", delay: 5, label: "5h"},
+               %{type: "ivr", delay: 6, label: "6h"},
+               %{type: "ivr", delay: 7, label: "7h"},
+               %{type: "sms", delay: 4, label: "4h"},
+               %{type: "sms", delay: 1, label: "1h"},
+               %{type: "sms", delay: 2, label: "2h"},
+               %{type: "sms", delay: 3, label: "3h"}
+             ]
+    end
+
+    test "actives sms with no retries no respondent" do
+      mode = ["sms"]
+      survey = insert(:survey)
+      %{actives: actives} = survey |> Survey.retries_histogram(mode)
+
+      assert actives == []
+    end
+
+    test "actives sms with no retries 1 respondent" do
+      mode = ["sms"]
+      survey = insert(:survey)
+      retry_time = Timex.now() |> retry_time()
+      filter = %{attempt: 1, mode: mode, retry_time: retry_time, survey_id: survey.id}
+      RetryStat.add!(filter)
+
+      %{actives: actives} = survey |> Survey.retries_histogram(mode)
+
+      assert actives == [%{hour: 0, respondents: 1}]
+    end
+
+    test "actives sms with 1 retry no respondents" do
+      mode = ["sms"]
+      survey = insert(:survey, %{sms_retry_configuration: "2h"})
+
+      %{actives: actives} = survey |> Survey.retries_histogram(mode)
+
+      assert actives == []
+    end
+
+    test "actives sms with 1 retry 1 active respondent in 1st attempt" do
+      mode = ["sms"]
+      survey = insert(:survey, %{sms_retry_configuration: "2h"})
+      retry_time = Timex.now() |> retry_time()
+      filter = %{attempt: 1, mode: mode, retry_time: retry_time, survey_id: survey.id}
+      RetryStat.add!(filter)
+
+      %{actives: actives} = survey |> Survey.retries_histogram(mode)
+
+      assert actives == [%{hour: 0, respondents: 1}]
+    end
+
+    test "actives sms with 1 retry 1 active respondent in 2nd attempt" do
+      mode = ["sms"]
+      survey = insert(:survey, %{sms_retry_configuration: "2h"})
+      retry_time = Timex.now() |> retry_time()
+      filter = %{attempt: 2, mode: mode, retry_time: retry_time, survey_id: survey.id}
+      RetryStat.add!(filter)
+
+      %{actives: actives} = survey |> Survey.retries_histogram(mode)
+
+      assert actives == [%{hour: 2, respondents: 1}]
+    end
+
+    test "actives sms with 1 retry 1 waiting respondent in 2nd attempt" do
+      mode = ["sms"]
+      survey = insert(:survey, %{sms_retry_configuration: "2h"})
+      retry_time = Timex.now() |> Timex.shift(hours: 1) |> retry_time()
+      filter = %{attempt: 2, mode: mode, retry_time: retry_time, survey_id: survey.id}
+      RetryStat.add!(filter)
+
+      %{actives: actives} = survey |> Survey.retries_histogram(mode)
+
+      assert actives == [%{hour: 1, respondents: 1}]
+    end
+
+    test "actives sms with 2 retries, 4 active and 2 waiting respondents" do
+      mode = ["sms"]
+      survey = insert(:survey, %{sms_retry_configuration: "2h 3h"})
+      retry_time = Timex.now() |> retry_time()
+      filter = %{attempt: 1, mode: mode, retry_time: retry_time, survey_id: survey.id}
+      RetryStat.add!(filter)
+      RetryStat.add!(filter)
+      RetryStat.add!(filter)
+
+      retry_time = Timex.now() |> retry_time()
+      filter = %{attempt: 2, mode: mode, retry_time: retry_time, survey_id: survey.id}
+      RetryStat.add!(filter)
+
+      retry_time = Timex.now() |> Timex.shift(hours: 2) |> retry_time()
+      filter = %{attempt: 3, mode: mode, retry_time: retry_time, survey_id: survey.id}
+      RetryStat.add!(filter)
+      RetryStat.add!(filter)
+
+      %{actives: actives} = survey |> Survey.retries_histogram(mode)
+
+      assert actives == [
+               %{hour: 0, respondents: 3},
+               %{hour: 2, respondents: 1},
+               %{hour: 3, respondents: 2}
+             ]
     end
   end
+
+  defp retry_time(time), do: Timex.format!(time, "%Y%0m%0d%H%M", :strftime)
 end
