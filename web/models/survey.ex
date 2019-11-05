@@ -428,6 +428,10 @@ defmodule Ask.Survey do
     }
   end
 
+  def retries_histograms(%Survey{mode: mode} = survey),
+    do:
+      mode |> Enum.map(fn mode -> survey |> retries_histogram(mode) end)
+
   def retries_histogram(%Survey{} = survey, mode),
     do: %{
       flow: survey |> retries_histogram_flow(mode),

@@ -557,6 +557,16 @@ defmodule Ask.SurveyControllerTest do
       }
     end
 
+    test "retries histograms", %{conn: conn, user: user} do
+      project = create_project_for_user(user)
+      survey = insert(:survey, project: project)
+
+      conn = get conn, project_survey_survey_path(conn, :retries_histograms, project, survey)
+      response = json_response(conn, 200)["data"]
+
+      assert response == [%{"actives" => [], "flow" => [%{"delay" => 0, "type" => "sms"}]}]
+    end
+
     test "renders page not found when id is nonexistent", %{conn: conn} do
       assert_error_sent 404, fn ->
         get conn, project_survey_path(conn, :show, -1, -1)

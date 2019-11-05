@@ -108,6 +108,17 @@ defmodule Ask.SurveyController do
     render(conn, "stats.json", stats)
   end
 
+  def retries_histograms(conn, %{"project_id" => project_id, "survey_id" => survey_id}) do
+    survey = conn
+    |> load_project(project_id)
+    |> assoc(:surveys)
+    |> Repo.get!(survey_id)
+
+    retries_histograms = survey |> Survey.retries_histograms
+
+    render(conn, "retries_histograms.json", %{histograms: retries_histograms})
+  end
+
   def update(conn, %{"project_id" => project_id, "id" => id, "survey" => survey_params}) do
     project = conn
       |> load_project_for_change(project_id)
