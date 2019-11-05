@@ -226,11 +226,11 @@ defmodule Ask.SurveyTest do
       test_actives_1_retry_1_respondent("mobileweb", %{mobileweb_retry_configuration: "2h"}, 2, 2)
     end
 
-    test "actives 1 mode 1 retry 1 waiting respondent in 2nd attempt" do
+    test "actives 1 mode 1 retry 1 waiting respondent for 2nd attempt" do
       mode = ["sms"]
       survey = insert(:survey, %{sms_retry_configuration: "2h"})
       retry_time = Timex.now() |> Timex.shift(hours: 1) |> retry_time()
-      %{attempt: 2, mode: mode, retry_time: retry_time, survey_id: survey.id}
+      %{attempt: 1, mode: mode, retry_time: retry_time, survey_id: survey.id}
         |> increase_stat(1)
 
       %{actives: actives} = survey |> Survey.retries_histogram(mode)
@@ -252,7 +252,7 @@ defmodule Ask.SurveyTest do
         |> increase_stat(1)
 
       retry_time = now |> Timex.shift(hours: 2) |> retry_time()
-      filter = %{attempt: 3, mode: mode, retry_time: retry_time, survey_id: survey.id}
+      filter = %{attempt: 2, mode: mode, retry_time: retry_time, survey_id: survey.id}
       filter |> increase_stat(2)
 
       %{actives: actives} = survey |> Survey.retries_histogram(mode)
@@ -290,7 +290,7 @@ defmodule Ask.SurveyTest do
       mode = ["ivr"]
       survey = insert(:survey, %{ivr_retry_configuration: "2h"})
       retry_time = Timex.now() |> Timex.shift(hours: 1) |> retry_time()
-      %{attempt: 2, mode: mode, retry_time: retry_time, survey_id: survey.id}
+      %{attempt: 1, mode: mode, retry_time: retry_time, survey_id: survey.id}
         |> increase_stat(1)
 
       %{actives: actives} = survey |> Survey.retries_histogram(mode)
@@ -311,7 +311,7 @@ defmodule Ask.SurveyTest do
         |> increase_stat(1)
 
       retry_time = now |> Timex.shift(hours: 2) |> retry_time()
-      %{attempt: 3, mode: mode, retry_time: retry_time, survey_id: survey.id}
+      %{attempt: 2, mode: mode, retry_time: retry_time, survey_id: survey.id}
         |> increase_stat(2)
 
       %{actives: actives} = survey |> Survey.retries_histogram(mode)
@@ -387,13 +387,13 @@ defmodule Ask.SurveyTest do
 
       retry_time = now |> Timex.shift(hours: 1) |> retry_time()
 
-      %{attempt: 2, mode: mode, retry_time: retry_time, survey_id: survey.id}
+      %{attempt: 1, mode: mode, retry_time: retry_time, survey_id: survey.id}
         |> increase_stat(5)
 
-      %{attempt: 3, mode: mode, retry_time: retry_time, survey_id: survey.id}
+      %{attempt: 2, mode: mode, retry_time: retry_time, survey_id: survey.id}
         |> increase_stat(6)
 
-      %{attempt: 4, mode: mode, retry_time: retry_time, survey_id: survey.id}
+      %{attempt: 3, mode: mode, retry_time: retry_time, survey_id: survey.id}
         |> increase_stat(7)
 
       %{actives: actives} = survey |> Survey.retries_histogram(mode)
