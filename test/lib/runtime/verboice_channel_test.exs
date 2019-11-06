@@ -499,12 +499,11 @@ defmodule Ask.Runtime.VerboiceChannelTest do
       %Respondent{mode: mode} = respondent = Repo.get(Respondent, respondent.id)
       assert respondent.state == "active"
 
-      retry_stat_filter = %{attempt: 1, mode: mode, survey_id: survey.id, retry_time: ""}
-      assert 1 == retry_stat_filter |> RetryStat.count
+      assert 1 == %{survey_id: survey.id} |> RetryStat.stats() |> RetryStat.count(%{attempt: 1, retry_time: "", mode: mode})
 
       VerboiceChannel.callback(conn, %{"path" => ["status", respondent.id, "token"], "CallStatus" => "expired", "CallDuration" => "16"})
 
-      assert 0 == retry_stat_filter |> RetryStat.count
+      assert 0 == %{survey_id: survey.id} |> RetryStat.stats() |> RetryStat.count(%{attempt: 1, retry_time: "", mode: mode})
 
       :ok = logger |> GenServer.stop
 
@@ -518,14 +517,11 @@ defmodule Ask.Runtime.VerboiceChannelTest do
       refute respondent.stats.total_call_time
       assert respondent.stats.total_call_time_seconds == 16
 
-      retry_stat_filter = retry_stat_filter |> put_retry_time(timeout_at)
-      assert 1 == retry_stat_filter |> RetryStat.count
+      assert 1 == %{survey_id: survey.id} |> RetryStat.stats() |> RetryStat.count(%{attempt: 1, retry_time: RetryStat.retry_time(timeout_at), mode: mode})
 
       VerboiceChannel.callback(conn, %{"path" => ["status", respondent.id, "token"], "CallStatus" => "expired", "CallDuration" => "16"})
     end
   end
-
-  defp put_retry_time(filter, timeout_at), do: filter |> Map.put(:retry_time, RetryStat.retry_time(timeout_at))
 
   test "check status" do
     assert VerboiceChannel.check_status(%{
