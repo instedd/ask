@@ -445,6 +445,10 @@ export const fetchSurveyStats = (projectId, surveyId) => {
   return apiFetchJSON(`projects/${projectId}/surveys/${surveyId}/stats`)
 }
 
+export const fetchSurveyRetriesHistograms = (projectId, surveyId) => {
+  return apiFetchJSON(`projects/${projectId}/surveys/${surveyId}/retries_histograms`)
+}
+
 export const stopSurveySimulation = (projectId, surveyId) => {
   return apiPostJSON(`projects/${projectId}/surveys/${surveyId}/stop_simulation`, null, {})
 }

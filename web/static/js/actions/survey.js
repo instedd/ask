@@ -37,6 +37,7 @@ export const RECEIVE_LINK = 'SURVEY_RECEIVE_LINK'
 export const REFRESH_LINK = 'SURVEY_REFRESH_LINK'
 export const DELETE_LINK = 'SURVEY_DELETE_LINK'
 export const RECEIVE_SURVEY_STATS = 'RECEIVE_SURVEY_STATS'
+export const RECEIVE_SURVEY_RETRIES_HISTOGRAMS = 'RECEIVE_SURVEY_RETRIES_HISTOGRAMS'
 
 export const createSurvey = (projectId: number, folderId?: number) => (dispatch: Function, getState: () => Store) =>
   api.createSurvey(projectId, folderId).then(response => {
@@ -64,6 +65,17 @@ export const fetchSurveyStats = (projectId: number, id: number) => (dispatch: Fu
 
 export const receiveSurveyStats = (surveyId: number, response: any) => ({
   type: RECEIVE_SURVEY_STATS,
+  surveyId,
+  response
+})
+
+export const fetchSurveyRetriesHistograms = (projectId: number, id: number) => (dispatch: Function) => {
+  api.fetchSurveyRetriesHistograms(projectId, id)
+    .then(stats => dispatch(receiveSurveyRetriesHistograms(id, stats)))
+}
+
+export const receiveSurveyRetriesHistograms = (surveyId: number, response: any) => ({
+  type: RECEIVE_SURVEY_RETRIES_HISTOGRAMS,
   surveyId,
   response
 })

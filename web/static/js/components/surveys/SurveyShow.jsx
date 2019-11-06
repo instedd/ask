@@ -13,6 +13,7 @@ import { modeLabel } from '../../questionnaire.mode'
 import { referenceColorClasses, referenceColors, referenceColorClassForUnassigned, referenceColorForUnassigned } from '../../referenceColors'
 import classNames from 'classnames/bind'
 import { Stats, Forecasts, SuccessRate, QueueSize } from '@instedd/surveda-d3-components'
+import RetriesHistogram from './RetriesHistogram'
 import { translate } from 'react-i18next'
 
 type State = {
@@ -48,7 +49,8 @@ class SurveyShow extends Component<any, State> {
     missing: PropTypes.number,
     pending: PropTypes.number,
     multiplier: PropTypes.number,
-    needed: PropTypes.number
+    needed: PropTypes.number,
+    retriesHistograms: PropTypes.array
   }
 
   constructor(props) {
@@ -63,6 +65,7 @@ class SurveyShow extends Component<any, State> {
     dispatch(actions.fetchSurveyIfNeeded(projectId, surveyId))
     dispatch(respondentActions.fetchRespondentsStats(projectId, surveyId))
     dispatch(actions.fetchSurveyStats(projectId, surveyId))
+    dispatch(actions.fetchSurveyRetriesHistograms(projectId, surveyId))
   }
 
   componentDidUpdate() {
@@ -128,8 +131,47 @@ class SurveyShow extends Component<any, State> {
 
   render() {
     const { questionnaires, survey, respondentsByDisposition, reference, contactedRespondents, cumulativePercentages, target, project, t,
-      estimatedSuccessRate, initialSuccessRate, successRate, completionRate, completes, missing, pending, multiplier, needed } = this.props
+      estimatedSuccessRate, initialSuccessRate, successRate, completionRate, completes, missing, pending, multiplier, needed, retriesHistograms } = this.props
     const { stopUnderstood } = this.state
+
+    const getHistogram = h => {
+      const translateType = type => {
+        switch (type) {
+          case 'ivr':
+            return 'voice'
+          case 'end':
+            return 'discard'
+        }
+        return type
+      }
+      const flow = h.flow.map(({delay, type, label}) => ({delay, type: translateType(type), label}))
+      let offset = 0
+      flow.forEach(step => {
+        offset += step.delay
+        step.offset = offset
+      })
+      const histLength = flow.reduce((total, attempt) => total + (attempt.delay ? attempt.delay : 1), 0)
+      const histActives = new Array(histLength).fill({value: 0})
+
+      h.actives.forEach(slot => {
+        histActives[slot.hour].value = slot.respondents
+      })
+
+      return {
+        actives: histActives,
+        flow: flow,
+        references: [{label: 'Trying', className: 'trying'}, {label: 'Stand by', className: 'standby'}],
+        quota: 100
+      }
+    }
+
+    const getHistograms = histograms => {
+      if (histograms) {
+        return histograms.map(h => getHistogram(h)).map(h => <RetriesHistogram quota={h.quota} flow={h.flow} actives={h.actives} completes={h.actives.map(() => false)} timewindows={h.actives.map(() => true)} scheduleDescription='' references={h.references} />)
+      }
+    }
+
+    const histograms = retriesHistograms ? getHistograms(retriesHistograms) : null
 
     if (!survey || !cumulativePercentages || !questionnaires || !respondentsByDisposition || !reference) {
       return <p>{t('Loading...')}</p>
@@ -280,6 +322,14 @@ class SurveyShow extends Component<any, State> {
               </div>
               <Stats data={stats} />
               <Forecasts data={forecasts} ceil={100} forecast={survey.state == 'running'} />
+              <div className='retries-histogram' style={{'marginTop': '20px'}}>
+                <div className='header'>
+                  <div className='title'>{t('Retries histograms')}</div>
+                  <div className='description'>{t('Number of contacts in each stage of the retry schedule')}</div>
+                </div>
+                { histograms }
+              </div>
+
               <div className='row' style={{ 'display': 'flex', 'alignItems': 'center', 'marginTop': '20px' }}>
                 <div style={{ 'width': '50%' }}>
                   <div className='header'>
@@ -438,6 +488,7 @@ class SurveyShow extends Component<any, State> {
 const mapStateToProps = (state, ownProps) => {
   const respondentsStatsRoot = state.respondentsStats[ownProps.params.surveyId]
   const surveyStats = state.surveyStats.surveyId == ownProps.params.surveyId ? state.surveyStats.stats : null
+  const surveyRetriesHistograms = state.surveyRetriesHistograms.surveyId == ownProps.params.surveyId ? state.surveyRetriesHistograms.histograms : null
 
   let respondentsByDisposition = null
   let cumulativePercentages = {}
@@ -478,7 +529,8 @@ const mapStateToProps = (state, ownProps) => {
     multiplier: surveyStats ? surveyStats.multiplier : null,
     missing: surveyStats ? surveyStats.missing : null,
     needed: surveyStats ? surveyStats.needed : null,
-    pending: surveyStats ? surveyStats.pending : null
+    pending: surveyStats ? surveyStats.pending : null,
+    retriesHistograms: surveyRetriesHistograms
   })
 }
 
