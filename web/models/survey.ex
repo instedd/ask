@@ -482,7 +482,7 @@ defmodule Ask.Survey do
   defp clean_empty_slots(slots),
     do: slots |> Enum.filter(fn %{respondents: count} -> count > 0 end)
 
-  defp retry_time(time), do: Timex.format!(time, "%Y%0m%0d%H%M", :strftime)
+  defp retry_time(time), do: Timex.format!(time, "%Y%0m%0d%H", :strftime)
 
   defp retries_histogram_flow(%Survey{} = survey, mode_sequence),
     do:

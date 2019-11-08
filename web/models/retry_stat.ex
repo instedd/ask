@@ -86,4 +86,6 @@ defmodule Ask.RetryStat do
     do:
       RetryStat
       |> Repo.get_by(attempt: attempt, mode: mode, retry_time: retry_time, survey_id: survey_id)
+
+  def retry_time(timeout_at), do: Timex.format!(timeout_at, "%Y%0m%0d%H", :strftime)
 end

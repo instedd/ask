@@ -525,7 +525,7 @@ defmodule Ask.Runtime.VerboiceChannelTest do
     end
   end
 
-  defp put_retry_time(filter, timeout_at), do: filter |> Map.put(:retry_time, Timex.format!(timeout_at, "%Y%0m%0d%H%M", :strftime))
+  defp put_retry_time(filter, timeout_at), do: filter |> Map.put(:retry_time, RetryStat.retry_time(timeout_at))
 
   test "check status" do
     assert VerboiceChannel.check_status(%{

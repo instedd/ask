@@ -456,7 +456,7 @@ defmodule Ask.BrokerTest do
     retry_stat_filter = %{attempt: 1, mode: mode, survey_id: survey.id} |> put_retry_time(timeout_at)
     assert 1 == retry_stat_filter |> RetryStat.count
 
-    timeout_at = Timex.now |> Timex.shift(minutes: -1)
+    timeout_at = Timex.now |> Timex.shift(hours: -1)
 
     Respondent.changeset(respondent, %{timeout_at: timeout_at}) |> Repo.update
 
@@ -477,7 +477,7 @@ defmodule Ask.BrokerTest do
     retry_stat_filter = %{attempt: 2, mode: mode, survey_id: survey.id} |> put_retry_time(timeout_at)
     assert 1 == retry_stat_filter |> RetryStat.count
 
-    timeout_at = Timex.now |> Timex.shift(minutes: -1)
+    timeout_at = Timex.now |> Timex.shift(hours: -1)
 
     Respondent.changeset(respondent, %{timeout_at: timeout_at}) |> Repo.update
 
@@ -1461,7 +1461,7 @@ defmodule Ask.BrokerTest do
     retry_stat_filter = %{attempt: 1, mode: mode, survey_id: survey.id} |> put_retry_time(timeout_at)
     assert 1 == retry_stat_filter |> RetryStat.count
 
-    timeout_at = Timex.now |> Timex.shift(minutes: -1)
+    timeout_at = Timex.now |> Timex.shift(hours: -1)
 
     Respondent.changeset(respondent, %{timeout_at: timeout_at}) |> Repo.update
 
@@ -1482,7 +1482,7 @@ defmodule Ask.BrokerTest do
     retry_stat_filter = %{attempt: 2, mode: mode, survey_id: survey.id} |> put_retry_time(timeout_at)
     assert 1 == retry_stat_filter |> RetryStat.count
 
-    timeout_at = Timex.now |> Timex.shift(minutes: -1)
+    timeout_at = Timex.now |> Timex.shift(hours: -1)
 
     Respondent.changeset(respondent, %{timeout_at: timeout_at}) |> Repo.update
 
@@ -1502,7 +1502,7 @@ defmodule Ask.BrokerTest do
     retry_stat_filter = %{attempt: 3, mode: mode, survey_id: survey.id} |> put_retry_time(timeout_at)
     assert 1 == retry_stat_filter |> RetryStat.count
 
-    timeout_at = Timex.now |> Timex.shift(minutes: -1)
+    timeout_at = Timex.now |> Timex.shift(hours: -1)
 
     Respondent.changeset(respondent, %{timeout_at: timeout_at}) |> Repo.update
 
@@ -1516,7 +1516,7 @@ defmodule Ask.BrokerTest do
     assert 0 == RetryStat.count(retry_stat_filter)
   end
 
-  defp put_retry_time(filter, timeout_at), do: filter |> Map.put(:retry_time, Timex.format!(timeout_at, "%Y%0m%0d%H%M", :strftime))
+  defp put_retry_time(filter, timeout_at), do: filter |> Map.put(:retry_time, RetryStat.retry_time(timeout_at))
 
   test "fallback respondent (IVR => SMS)" do
     test_channel = TestChannel.new

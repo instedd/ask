@@ -238,7 +238,7 @@ defmodule Ask.SurveyTest do
     test "actives sms -> ivr with no retries 1 respondent" do
       mode = ["sms", "ivr"]
       survey = insert(:survey, %{fallback_delay: "2h"})
-      retry_time = Timex.now() |> retry_time()
+      retry_time = Timex.now() |> RetryStat.retry_time()
       %{attempt: 1, mode: mode, retry_time: retry_time, survey_id: survey.id}
         |> increase_stat(1)
 
@@ -269,7 +269,7 @@ defmodule Ask.SurveyTest do
       %{attempt: 2, mode: mode, retry_time: "", survey_id: survey.id}
         |> increase_stat(2)
 
-      retry_time = now |> retry_time()
+      retry_time = now |> RetryStat.retry_time()
 
       %{attempt: 3, mode: mode, retry_time: retry_time, survey_id: survey.id}
         |> increase_stat(3)
@@ -277,7 +277,7 @@ defmodule Ask.SurveyTest do
       %{attempt: 4, mode: mode, retry_time: retry_time, survey_id: survey.id}
         |> increase_stat(4)
 
-      retry_time = now |> Timex.shift(hours: 1) |> retry_time()
+      retry_time = now |> Timex.shift(hours: 1) |> RetryStat.retry_time()
 
       %{attempt: 1, mode: mode, retry_time: retry_time, survey_id: survey.id}
         |> increase_stat(5)
@@ -337,7 +337,7 @@ defmodule Ask.SurveyTest do
 
   defp test_actives_1_retry_1_respondent_waiting(mode) do
     survey = insert(:survey, mode |> retry_configuration("2h"))
-    retry_time = Timex.now() |> Timex.shift(hours: 1) |> retry_time()
+    retry_time = Timex.now() |> Timex.shift(hours: 1) |> RetryStat.retry_time()
 
     %{attempt: 1, mode: [mode], retry_time: retry_time, survey_id: survey.id}
       |> increase_stat(1)
@@ -357,7 +357,7 @@ defmodule Ask.SurveyTest do
     %{attempt: 2, mode: [mode], retry_time: active_retry_time(mode), survey_id: survey.id}
       |> increase_stat(1)
 
-    retry_time = now |> Timex.shift(hours: 2) |> retry_time()
+    retry_time = now |> Timex.shift(hours: 2) |> RetryStat.retry_time()
     %{attempt: 2, mode: [mode], retry_time: retry_time, survey_id: survey.id}
       |> increase_stat(2)
 
@@ -378,11 +378,11 @@ defmodule Ask.SurveyTest do
     survey = insert(:survey, mode |> retry_configuration("2h"))
     now = Timex.now()
 
-    retry_time = now |> Timex.shift(hours: -2) |> retry_time()
+    retry_time = now |> Timex.shift(hours: -2) |> RetryStat.retry_time()
     %{attempt: 2, mode: [mode], retry_time: retry_time, survey_id: survey.id}
       |> increase_stat(1)
 
-    retry_time = now |> Timex.shift(hours: -1) |> retry_time()
+    retry_time = now |> Timex.shift(hours: -1) |> RetryStat.retry_time()
     %{attempt: 2, mode: [mode], retry_time: retry_time, survey_id: survey.id}
       |> increase_stat(1)
 
@@ -395,7 +395,7 @@ defmodule Ask.SurveyTest do
   end
 
   defp active_retry_time("ivr"), do: ""
-  defp active_retry_time(_), do: Timex.now() |> retry_time()
+  defp active_retry_time(_), do: Timex.now() |> RetryStat.retry_time()
 
   defp increase_stat(filter, n) when n <= 1 do
     {:ok, _} = RetryStat.add!(filter)
@@ -405,6 +405,4 @@ defmodule Ask.SurveyTest do
     {:ok, _} = RetryStat.add!(filter)
     increase_stat(filter, n - 1)
   end
-
-  defp retry_time(time), do: Timex.format!(time, "%Y%0m%0d%H%M", :strftime)
 end
