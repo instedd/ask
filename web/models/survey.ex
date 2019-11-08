@@ -21,7 +21,11 @@ defmodule Ask.Survey do
     ConfigHelper,
     RetryStat
   }
-  alias Ask.Runtime.{Broker, ChannelStatusServer}
+  alias Ask.Runtime.{
+    Broker,
+    ChannelStatusServer,
+    Session
+  }
   alias Ask.Ecto.Type.JSON
 
   @max_int 2147483647
@@ -263,9 +267,11 @@ defmodule Ask.Survey do
     if survey.fallback_delay do
       parse_retry_item(survey.fallback_delay |> String.trim, nil)
     else
-      nil
+      Session.default_fallback_delay
     end
   end
+
+  defp minutes_to_hours(minutes), do: Kernel.round(minutes / 60)
 
   defp parse_retries(nil), do: []
 
@@ -495,7 +501,7 @@ defmodule Ask.Survey do
   end
 
   defp flow_retries(survey, mode, _) do
-    fallback_delay = Kernel.round(fallback_delay(survey) / 60)
+    fallback_delay = survey |> fallback_delay() |> minutes_to_hours()
     flow_retries_with_fallback(survey, mode, fallback_delay)
   end
 

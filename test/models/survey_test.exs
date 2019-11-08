@@ -3,6 +3,7 @@ defmodule Ask.SurveyTest do
   use Ask.TestHelpers
 
   alias Ask.{Survey, RetryStat}
+  alias Ask.Runtime.Session
 
   @valid_attrs %{name: "some content", schedule: Ask.Schedule.default()}
   @invalid_attrs %{}
@@ -35,6 +36,11 @@ defmodule Ask.SurveyTest do
   test "parse fallback delay" do
     survey = %Survey{fallback_delay: "2h"}
     assert Survey.fallback_delay(survey) == 120
+  end
+
+  test "returns default fallback delay" do
+    survey = %Survey{}
+    assert Survey.fallback_delay(survey) == Session.default_fallback_delay()
   end
 
   test "returns nil fallback delay on parse failure" do
