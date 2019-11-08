@@ -430,37 +430,37 @@ defmodule Ask.Survey do
 
   def retries_histograms(%Survey{mode: mode} = survey) do
     stats = %{survey_id: survey.id} |> RetryStat.stats()
-    mode |> Enum.map(fn mode -> survey |> retries_histogram(stats, mode) end)
+    mode |> Enum.map(fn mode -> survey |> retries_histogram(stats, mode, Timex.now) end)
   end
 
-  def retries_histogram(%Survey{} = survey, stats, mode),
+  def retries_histogram(%Survey{} = survey, stats, mode, now),
     do: %{
       flow: survey |> retries_histogram_flow(mode),
-      actives: survey |> retries_histogram_actives(stats, mode) |> clean_empty_slots()
+      actives: survey |> retries_histogram_actives(stats, mode, now) |> clean_empty_slots()
     }
 
-  defp retries_histogram_actives(%Survey{id: survey_id} = survey, stats, mode) do
+  defp retries_histogram_actives(%Survey{id: survey_id} = survey, stats, mode, now) do
     survey
     |> retries_histogram_flow(mode)
     |> absolute_delay_flow()
     |> Stream.with_index()
     |> Enum.reduce([], fn {%{absolute_delay: absolute_delay, delay: delay}, idx}, acc ->
-      acc ++ attempt_respondents(survey_id, stats, mode, idx + 1, delay - 1, absolute_delay)
+      acc ++ attempt_respondents(survey_id, stats, mode, idx + 1, delay - 1, absolute_delay, now)
     end)
   end
 
-  defp attempt_respondents(survey_id, stats, mode, attempt, delay, absolute_delay) when delay > 0 do
-    retry_time = Timex.now() |> Timex.shift(hours: delay) |> retry_time()
+  defp attempt_respondents(survey_id, stats, mode, attempt, delay, absolute_delay, now) when delay > 0 do
+    retry_time = now |> Timex.shift(hours: delay) |> retry_time()
 
     count = stats
       |> RetryStat.count(%{attempt: attempt - 1, mode: mode, retry_time: retry_time})
 
     [%{hour: absolute_delay - delay, respondents: count}] ++
-      attempt_respondents(survey_id, stats, mode, attempt, delay - 1, absolute_delay)
+      attempt_respondents(survey_id, stats, mode, attempt, delay - 1, absolute_delay, now)
   end
 
-  defp attempt_respondents(survey_id, _, mode, attempt, _, absolute_delay) do
-    retry_time = Timex.now() |> retry_time()
+  defp attempt_respondents(survey_id, _, mode, attempt, _, absolute_delay, now) do
+    retry_time = now |> retry_time()
 
     count =
       %{attempt: attempt, mode: mode, retry_time: retry_time, survey_id: survey_id, overdue: true}

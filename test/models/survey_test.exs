@@ -117,7 +117,7 @@ defmodule Ask.SurveyTest do
       mode = ["sms"]
       survey = insert(:survey)
       stats = %{survey_id: survey.id} |> RetryStat.stats()
-      %{flow: flow} = survey |> Survey.retries_histogram(stats, mode)
+      %{flow: flow} = survey |> Survey.retries_histogram(stats, mode, Timex.now)
 
       assert flow == [%{type: "sms", delay: 0}]
     end
@@ -126,7 +126,7 @@ defmodule Ask.SurveyTest do
       mode = ["sms"]
       survey = insert(:survey, %{sms_retry_configuration: "1h 2h 3h"})
       stats = %{survey_id: survey.id} |> RetryStat.stats()
-      %{flow: flow} = survey |> Survey.retries_histogram(stats, mode)
+      %{flow: flow} = survey |> Survey.retries_histogram(stats, mode, Timex.now)
 
       assert flow == [
                %{type: "sms", delay: 0},
@@ -147,7 +147,7 @@ defmodule Ask.SurveyTest do
         })
 
       stats = %{survey_id: survey.id} |> RetryStat.stats()
-      %{flow: flow} = survey |> Survey.retries_histogram(stats, mode)
+      %{flow: flow} = survey |> Survey.retries_histogram(stats, mode, Timex.now)
 
       assert flow == [
                %{type: "sms", delay: 0},
@@ -173,7 +173,7 @@ defmodule Ask.SurveyTest do
         })
 
       stats = %{survey_id: survey.id} |> RetryStat.stats()
-      %{flow: flow} = survey |> Survey.retries_histogram(stats, mode)
+      %{flow: flow} = survey |> Survey.retries_histogram(stats, mode, Timex.now)
 
       assert flow == [
                %{type: "mobileweb", delay: 0},
@@ -210,15 +210,15 @@ defmodule Ask.SurveyTest do
     end
 
     test "actives 1 mode 1 retry 1 active respondent in 1st attempt" do
-      test_actives_1_retry_1_respondent("sms", 1, 0)
-      test_actives_1_retry_1_respondent("ivr", 1, 0)
-      test_actives_1_retry_1_respondent("mobileweb", 1, 0)
+      test_actives_1_retry_1_respondent("sms")
+      test_actives_1_retry_1_respondent("ivr")
+      test_actives_1_retry_1_respondent("mobileweb")
     end
 
     test "actives 1 mode 1 retry 1 active respondent in 2nd attempt" do
-      test_actives_1_retry_1_respondent("sms", 2, 2)
-      test_actives_1_retry_1_respondent("ivr", 2, 2)
-      test_actives_1_retry_1_respondent("mobileweb", 2, 2)
+      test_actives_1_retry_1_respondent_2("sms")
+      test_actives_1_retry_1_respondent_2("ivr")
+      test_actives_1_retry_1_respondent_2("mobileweb")
     end
 
     test "actives 1 mode 1 retry 1 waiting respondent for 2nd attempt" do
@@ -247,7 +247,7 @@ defmodule Ask.SurveyTest do
         |> increase_stat(1)
 
       stats = %{survey_id: survey.id} |> RetryStat.stats()
-      %{actives: actives} = survey |> Survey.retries_histogram(stats, mode)
+      %{actives: actives} = survey |> Survey.retries_histogram(stats, mode, Timex.now)
 
       assert actives == [%{hour: 0, respondents: 1}]
     end
@@ -259,7 +259,7 @@ defmodule Ask.SurveyTest do
         |> increase_stat(1)
 
       stats = %{survey_id: survey.id} |> RetryStat.stats()
-      %{actives: actives} = survey |> Survey.retries_histogram(stats, mode)
+      %{actives: actives} = survey |> Survey.retries_histogram(stats, mode, Timex.now)
 
       assert actives == [%{hour: 2, respondents: 1}]
     end
@@ -295,7 +295,7 @@ defmodule Ask.SurveyTest do
         |> increase_stat(7)
 
       stats = %{survey_id: survey.id} |> RetryStat.stats()
-      %{actives: actives} = survey |> Survey.retries_histogram(stats, mode)
+      %{actives: actives} = survey |> Survey.retries_histogram(stats, mode, Timex.now)
 
       assert actives == [
                %{hour: 0, respondents: 1},
@@ -313,7 +313,7 @@ defmodule Ask.SurveyTest do
     survey = insert(:survey)
     stats = %{survey_id: survey.id} |> RetryStat.stats()
     %{actives: actives} = survey
-      |> Survey.retries_histogram(stats, [mode])
+      |> Survey.retries_histogram(stats, [mode], Timex.now)
 
     assert actives == []
   end
@@ -321,19 +321,30 @@ defmodule Ask.SurveyTest do
   defp test_actives_1_retry_no_respondents(mode) do
     survey = insert(:survey, mode |> retry_configuration("2h"))
     stats = %{survey_id: survey.id} |> RetryStat.stats()
-    %{actives: actives} = survey |> Survey.retries_histogram(stats, [mode])
+    %{actives: actives} = survey |> Survey.retries_histogram(stats, [mode], Timex.now)
     assert actives == []
   end
 
-  defp test_actives_1_retry_1_respondent(mode, attempt, hour) do
+  defp test_actives_1_retry_1_respondent(mode) do
     survey = insert(:survey, mode |> retry_configuration("2h"))
-    %{attempt: attempt, mode: [mode], retry_time: active_retry_time(mode), survey_id: survey.id}
+    %{attempt: 1, mode: [mode], retry_time: active_retry_time(mode), survey_id: survey.id}
       |> increase_stat(1)
 
     stats = %{survey_id: survey.id} |> RetryStat.stats()
-    %{actives: actives} = survey |> Survey.retries_histogram(stats, [mode])
+    %{actives: actives} = survey |> Survey.retries_histogram(stats, [mode], Timex.now)
 
-    assert actives == [%{hour: hour, respondents: 1}]
+    assert actives == [%{hour: 0, respondents: 1}]
+  end
+
+  defp test_actives_1_retry_1_respondent_2(mode) do
+    survey = insert(:survey, mode |> retry_configuration("2h"))
+    %{attempt: 2, mode: [mode], retry_time: active_retry_time(mode), survey_id: survey.id}
+      |> increase_stat(1)
+
+    stats = %{survey_id: survey.id} |> RetryStat.stats()
+    %{actives: actives} = survey |> Survey.retries_histogram(stats, [mode], Timex.now)
+
+    assert actives == [%{hour: 2, respondents: 1}]
   end
 
   defp test_actives_no_retries_1_respondent(mode) do
@@ -342,7 +353,7 @@ defmodule Ask.SurveyTest do
     %{attempt: 1, mode: [mode], retry_time: active_retry_time(mode), survey_id: survey.id}
       |> increase_stat(1)
     %{actives: actives} = survey
-      |> Survey.retries_histogram(stats, [mode])
+      |> Survey.retries_histogram(stats, [mode], Timex.now)
     assert actives == [%{hour: 0, respondents: 1}]
   end
 
@@ -354,7 +365,7 @@ defmodule Ask.SurveyTest do
       |> increase_stat(1)
 
     stats = %{survey_id: survey.id} |> RetryStat.stats()
-    %{actives: actives} = survey |> Survey.retries_histogram(stats, [mode])
+    %{actives: actives} = survey |> Survey.retries_histogram(stats, [mode], Timex.now)
 
     assert actives == [%{hour: 1, respondents: 1}]
   end
@@ -374,7 +385,7 @@ defmodule Ask.SurveyTest do
       |> increase_stat(2)
 
     stats = %{survey_id: survey.id} |> RetryStat.stats()
-    %{actives: actives} = survey |> Survey.retries_histogram(stats, [mode])
+    %{actives: actives} = survey |> Survey.retries_histogram(stats, [mode], Timex.now)
 
     assert actives == [
              %{hour: 0, respondents: 3},
@@ -403,7 +414,7 @@ defmodule Ask.SurveyTest do
       |> increase_stat(1)
 
     stats = %{survey_id: survey.id} |> RetryStat.stats()
-    %{actives: actives} = survey |> Survey.retries_histogram(stats, [mode])
+    %{actives: actives} = survey |> Survey.retries_histogram(stats, [mode], Timex.now)
 
     assert actives == [%{hour: 2, respondents: 3}]
   end
