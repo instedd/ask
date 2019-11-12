@@ -12,8 +12,7 @@ import sum from 'lodash/sum'
 import { modeLabel } from '../../questionnaire.mode'
 import { referenceColorClasses, referenceColors, referenceColorClassForUnassigned, referenceColorForUnassigned } from '../../referenceColors'
 import classNames from 'classnames/bind'
-import { Stats, Forecasts, SuccessRate, QueueSize } from '@instedd/surveda-d3-components'
-import RetriesHistogram from './RetriesHistogram'
+import { Stats, Forecasts, SuccessRate, QueueSize, RetriesHistogram } from '@instedd/surveda-d3-components'
 import { translate } from 'react-i18next'
 
 type State = {
