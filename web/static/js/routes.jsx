@@ -28,6 +28,7 @@ import * as questionnaireActions from './actions/questionnaire'
 import ChannelTabs from './components/channels/ChannelTabs'
 import ChannelNew from './components/channels/ChannelNew'
 import ChannelSettings from './components/channels/ChannelSettings'
+import SmsSimulator from './components/simulator/SmsSimulator'
 
 const k = (s) => s
 
@@ -88,6 +89,8 @@ export default (
         <Route path='settings' components={{ body: ChannelSettings, tabs: ChannelTabs }} />
       </Route>
     </Route>
+
+    <Route path='/simulator' title={k('Sms Simulator')} component={SmsSimulator}/>
   </Route>
 )
 
