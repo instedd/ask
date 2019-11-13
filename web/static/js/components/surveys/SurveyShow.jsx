@@ -150,7 +150,13 @@ class SurveyShow extends Component<any, State> {
         step.offset = offset
       })
       const histLength = flow.reduce((total, attempt) => total + (attempt.delay ? attempt.delay : 1), 0)
-      const histActives = new Array(histLength).fill({value: 0})
+
+      const histActives = new Array(histLength)
+
+      let i
+      for (i = 0; i < histLength; i++) {
+        histActives[i] = {value: 0}
+      }
 
       h.actives.forEach(slot => {
         histActives[slot.hour].value = slot.respondents
