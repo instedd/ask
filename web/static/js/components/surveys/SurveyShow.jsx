@@ -325,14 +325,18 @@ class SurveyShow extends Component<any, State> {
               </div>
               <Stats data={stats} />
               <Forecasts data={forecasts} ceil={100} forecast={survey.state == 'running'} />
-              <div className='retries-histogram' style={{'marginTop': '20px'}}>
-                <div className='header'>
-                  <div className='title'>{t('Retries histograms')}</div>
-                  <div className='description'>{t('Number of contacts in each stage of the retry schedule')}</div>
-                </div>
-                { getHistograms() }
-              </div>
-
+              {
+                survey.state == 'terminated' ? null
+                : (
+                  <div className='retries-histogram' style={{'marginTop': '20px'}}>
+                    <div className='header'>
+                      <div className='title'>{t('Retries histograms')}</div>
+                      <div className='description'>{t('Number of contacts in each stage of the retry schedule')}</div>
+                    </div>
+                    { getHistograms() }
+                  </div>
+                )
+              }
               <div className='row' style={{ 'display': 'flex', 'alignItems': 'center', 'marginTop': '20px' }}>
                 <div style={{ 'width': '50%' }}>
                   <div className='header'>
