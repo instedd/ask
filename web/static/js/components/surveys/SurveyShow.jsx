@@ -143,7 +143,7 @@ class SurveyShow extends Component<any, State> {
         }
         return type
       }
-      const flow = h.flow.map(({delay, type, label}) => ({delay, type: translateType(type), label}))
+      const flow = h.flow.map(({delay, type, label}, idx) => ({delay: idx != 0 && delay == 0 ? 1 : delay, type: translateType(type), label}))
       let offset = 0
       flow.forEach(step => {
         offset += step.delay
