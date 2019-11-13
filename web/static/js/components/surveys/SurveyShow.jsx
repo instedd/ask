@@ -170,13 +170,11 @@ class SurveyShow extends Component<any, State> {
       }
     }
 
-    const getHistograms = histograms => {
-      if (histograms) {
-        return histograms.map(h => getHistogram(h)).map(h => <RetriesHistogram quota={h.quota} flow={h.flow} actives={h.actives} completes={h.actives.map(() => false)} timewindows={h.actives.map(() => true)} scheduleDescription='' references={h.references} />)
-      }
-    }
+    const getHistograms = () => {
+      if (!retriesHistograms) return null
 
-    const histograms = retriesHistograms ? getHistograms(retriesHistograms) : null
+      return retriesHistograms.map(h => getHistogram(h)).map(h => <RetriesHistogram quota={h.quota} flow={h.flow} actives={h.actives} completes={h.actives.map(() => false)} timewindows={h.actives.map(() => true)} scheduleDescription='' references={h.references} />)
+    }
 
     if (!survey || !cumulativePercentages || !questionnaires || !respondentsByDisposition || !reference) {
       return <p>{t('Loading...')}</p>
@@ -332,7 +330,7 @@ class SurveyShow extends Component<any, State> {
                   <div className='title'>{t('Retries histograms')}</div>
                   <div className='description'>{t('Number of contacts in each stage of the retry schedule')}</div>
                 </div>
-                { histograms }
+                { getHistograms() }
               </div>
 
               <div className='row' style={{ 'display': 'flex', 'alignItems': 'center', 'marginTop': '20px' }}>
