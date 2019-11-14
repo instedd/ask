@@ -2037,7 +2037,8 @@ defmodule Ask.BrokerTest do
     reply = Broker.sync_step(respondent, Flow.Message.reply("Yes"), nil, now)
     assert {:reply, ReplyHelper.simple("Do you exercise", "Do you exercise? Reply 1 for YES, 2 for NO")} = reply
 
-    %Respondent{ timeout_at: timeout_at} = respondent = Repo.get(Respondent, respondent.id)
+    %Respondent{ timeout_at: timeout_at, mode: mode} = respondent = Repo.get(Respondent, respondent.id)
+    assert 1 == %{survey_id: survey.id} |> RetryStat.stats() |> RetryStat.count(%{attempt: 1, retry_time: RetryStat.retry_time(timeout_at), mode: mode})
 
     Broker.delivery_confirm(respondent, "Do you exercise")
 
@@ -2049,9 +2050,13 @@ defmodule Ask.BrokerTest do
     reply = Broker.sync_step(respondent, Flow.Message.reply("Yes"), nil, hours_after)
     assert {:reply, ReplyHelper.simple("Which is the second perfect number?", "Which is the second perfect number??")} = reply
 
-    %Respondent{ timeout_at: hours_after_timeout_at} = respondent = Repo.get(Respondent, respondent.id)
+    %Respondent{ timeout_at: hours_after_timeout_at, mode: mode} = respondent = Repo.get(Respondent, respondent.id)
 
     assert Timex.diff(hours_after_timeout_at, timeout_at, :hours) == hours_passed
+
+    stats = %{survey_id: survey.id} |> RetryStat.stats()
+    assert 0 == stats |> RetryStat.count(%{attempt: 1, retry_time: RetryStat.retry_time(timeout_at), mode: mode})
+    assert 1 == stats |> RetryStat.count(%{attempt: 1, retry_time: RetryStat.retry_time(hours_after_timeout_at), mode: mode})
 
     Broker.delivery_confirm(respondent, "Which is the second perfect number?")
 

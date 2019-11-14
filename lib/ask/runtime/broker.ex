@@ -644,6 +644,11 @@ defmodule Ask.Runtime.Broker do
     RetryStat.add!(%{attempt: stats |> Stats.attempts(:all), mode: mode, retry_time: "", survey_id: survey_id})
   defp increase_retry_stat(%Session{respondent: %Respondent{disposition: "queued", mode: mode, stats: stats, survey_id: survey_id} = respondent}, timeout, now), do:
     RetryStat.add!(%{attempt: stats |> Stats.attempts(:all), mode: mode, retry_time: respondent |> next_timeout(timeout, now) |> RetryStat.retry_time(), survey_id: survey_id})
+  defp increase_retry_stat(%Session{respondent: %Respondent{timeout_at: nil}, current_mode: %Ask.Runtime.SMSMode{}}, _, _), do: nil
+  defp increase_retry_stat(%Session{respondent: %Respondent{mode: mode, stats: stats, survey_id: survey_id, timeout_at: timeout_at} = respondent, current_mode: %Ask.Runtime.SMSMode{}}, timeout, now) do
+    RetryStat.subtract!(%{attempt: stats |> Stats.attempts(:all), mode: mode, retry_time: RetryStat.retry_time(timeout_at), survey_id: survey_id})
+    RetryStat.add!(%{attempt: stats |> Stats.attempts(:all), mode: mode, retry_time: respondent |> next_timeout(timeout, now) |> RetryStat.retry_time(), survey_id: survey_id})
+  end
   defp increase_retry_stat(_, _, _), do: nil
 
   defp substract_retry_stat(%Respondent{session: %{"current_mode" => %{"mode" => "ivr"}}, mode: mode, stats: stats, survey_id: survey_id}), do:
