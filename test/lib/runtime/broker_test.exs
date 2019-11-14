@@ -2032,16 +2032,27 @@ defmodule Ask.BrokerTest do
 
     Broker.delivery_confirm(respondent, "Do you smoke?")
 
-    reply = Broker.sync_step(respondent, Flow.Message.reply("Yes"))
+    now = Timex.now
+
+    reply = Broker.sync_step(respondent, Flow.Message.reply("Yes"), nil, now)
     assert {:reply, ReplyHelper.simple("Do you exercise", "Do you exercise? Reply 1 for YES, 2 for NO")} = reply
 
-    respondent = Repo.get(Respondent, respondent.id)
+    %Respondent{ timeout_at: timeout_at} = respondent = Repo.get(Respondent, respondent.id)
+
     Broker.delivery_confirm(respondent, "Do you exercise")
 
-    reply = Broker.sync_step(respondent, Flow.Message.reply("Yes"))
+    hours_passed = 3
+
+    hours_after = now
+      |> Timex.shift(hours: hours_passed)
+
+    reply = Broker.sync_step(respondent, Flow.Message.reply("Yes"), nil, hours_after)
     assert {:reply, ReplyHelper.simple("Which is the second perfect number?", "Which is the second perfect number??")} = reply
 
-    respondent = Repo.get(Respondent, respondent.id)
+    %Respondent{ timeout_at: hours_after_timeout_at} = respondent = Repo.get(Respondent, respondent.id)
+
+    assert Timex.diff(hours_after_timeout_at, timeout_at, :hours) == hours_passed
+
     Broker.delivery_confirm(respondent, "Which is the second perfect number?")
 
     reply = Broker.sync_step(respondent, Flow.Message.reply("99"))
