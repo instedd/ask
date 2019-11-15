@@ -1,5 +1,5 @@
 defmodule Ask.XXXXTest do
-  use Ask.FunctionalTest
+  use Ask.FunctionalCase
 
   test "respondent receives a message" do
     %{respondent: respondent} = setup_survey(mode: "sms")
