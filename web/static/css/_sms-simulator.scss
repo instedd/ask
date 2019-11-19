@@ -3,9 +3,9 @@
   float: right;
 }
 .chat-window-body {
-  height: 325px;
+  height: 500px;
   overflow: auto;
-  padding: 15px 10px;
+  padding: 15px 15px;
   position: relative;
   z-index: 1;
   background: #E0E0E0;
@@ -15,13 +15,12 @@
     margin: 0;
 
     li {
-      padding: 24px 10px 24px 27px;
-      border-bottom: 1px solid #E0E0E0; //$md-grey-300;
+      padding: 7px 5px 7px 15px;
+      border-bottom: 5px solid #E0E0E0; // separation betweeen same-origin messages
     }
     li:last-child {
       border-bottom: none;
     }
-
     .message-bubble {
       border-radius: 4px;
       margin: 5px 18px 24px;
@@ -31,13 +30,13 @@
 
       .content-text {
         display: inline-block;
-        -ms-word-break: break-all;
-        word-break: break-all;
+        // -ms-word-break: break-all;
+        // word-break: break-all;
         -webkit-hyphens: auto;
         -moz-hyphens: auto;
         hyphens: auto;
         font-size: 1.14rem;
-        width: 315px;
+        width: 187.5px;
       }
 
       .content-timestamp {
@@ -54,6 +53,44 @@
     .message-received {
       background: #FFF;
       margin-left: 0px;
+    }
+    // .message-sent:before, .message-received:before {
+    //   border: solid transparent;
+    //   border-top-color: #E0E0E0;//$md-grey-400;
+    //   border-width: 10px;
+    //   content: "";
+    //   height: 0;
+    //   position: absolute;
+    //   top: 0;
+    //   width: 0;
+    // }
+    // .message-sent:before {
+    //   left: 100%;
+    //   margin-left: -9px;
+    // }
+    // .message-received:before {
+    //   left: 0;
+    //   margin-left: -11px;
+    // }
+    
+    // properties for bubble start mark
+    .message-sent:after, .message-received:after {
+      border: solid transparent;
+      border-width: 7px;
+      content: "";
+      height: 0;
+      margin-left: -7px;
+      position: absolute;
+      top: 0;
+      width: 0;
+    }
+    .message-sent:after {
+      border-top-color: #F0F4C3; //$md-lime-100;
+      left: 100%;
+    }
+    .message-received:after {
+      border-top-color: #FFF;
+      left: 0;
     }
   }
 }

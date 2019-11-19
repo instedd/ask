@@ -2,10 +2,24 @@ import React, { Component, PropTypes } from 'react'
 import { connect } from 'react-redux'
 import { withRouter } from 'react-router'
 
+// import * as test from './testMessages'
+
 class SmsSimulator extends Component{
 
+    message = (id, text, type) => {
+        return {id: id, messageBody: text, messageType: type}
+    }
+
+    testMessages = () => { return [
+        this.message(1, "please complete this survey", "received"),
+        this.message(2, "whats your gender?", "received"),
+        this.message(3, "female", "sent"),
+        this.message(4, "whats your age?", "received"),
+        this.message(5, "25", "sent")
+    ]}
+
     state = {
-        messages: []
+        messages: this.testMessages()
     }
 
     handleUserSentMessage = message => {
@@ -71,12 +85,18 @@ const ChatTitle = props => {
 }
 
 const MessageBulk = props =>{
-    const {message} = props
-    const sentMessage = message.messageType === "sent"
+    const {messages} = props
+    const sentMessage = messages[0].messageType === "sent"
     return (
-        <li className={"message-bubble " + (sentMessage ? "message-sent" : "message-received")}>
-            {message.messageBody.trim()}
-        </li>
+        <div className={"message-bubble " + (sentMessage ? "message-sent" : "message-received")}>
+            {messages.map(message =>
+                <li key={message.id}>
+                    <div className="content-text">
+                        {message.messageBody.trim()}
+                    </div>
+                </li>
+            )}
+        </div>
     )
 }
 
@@ -94,16 +114,38 @@ class MessagesList extends Component {
     }
 
     render(){
-        const { messages } = this.props
+        const groupBy = (elems, func) => {
+            const lastElem = (collection) => (collection[collection.length - 1])
+      
+            return elems.reduce(function (groups, elem) {
+              const lastGroup = lastElem(groups)
+              if (groups.length == 0 || func(lastElem(lastGroup)) != func(elem)) {
+                groups.push([elem])
+              } else {
+                lastGroup.push(elem)
+              }
+              return groups
+            }, [])
+        }
 
-        const messageList = messages.map((message, index) => {
-            return (
-                <MessageBulk key={`msg-bulk-${index}`} message={message}/>
-            )
-        })
+        const { messages } = this.props
+        const groupedMessages = groupBy(messages, (message) => (message.messageType))
+
+        // const messageList = messages.map((message, index) => {
+        //     return (
+        //         <MessageBulk key={`msg-bulk-${index}`} message={message}/>
+        //     )
+        // })
         return (
             <div className="chat-window-body">
-                <ul>{messageList}</ul>
+                <ul>
+                    {groupedMessages.map((messages, ix) =>
+                        <MessageBulk
+                        key={`msg-bulk-${ix}`}
+                        messages={messages}
+                        />
+                    )}
+                </ul>
                 <div style={{ float: "left", clear: "both" }}
                      ref={(el) => { this._messagesBottomDiv = el; }}>
                 </div>
@@ -150,7 +192,7 @@ class ChatFooter extends Component {
                     name="messageBody"
                     value={messageBody}
                     onChange={this.handleChange}
-                    placeholder="Type message here"
+                    placeholder="Write your message here"
                     onKeyPress={this.sendMessageIfEnterPressed}
                 />
                 <a onClick={this.sendMessage} className="chat-button">SEND</a>
