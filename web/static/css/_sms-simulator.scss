@@ -1,6 +1,11 @@
+$receivedMessageBackground: color("grey", "darken-3");
+$sentMessageBackground: color("grey", "darken-4");
+
 .chat-window {
-  width: calc(100%/3);
+  @extend .z-depth-5;
+  width: calc(100% / 2);
   float: right;
+  border-radius: 5px;
 }
 .chat-window-body {
   height: 500px;
@@ -8,7 +13,7 @@
   padding: 15px 15px;
   position: relative;
   z-index: 1;
-  background: #E0E0E0;
+  background: color("grey", "darken-1");
 
   ul {
     list-style-type: none;
@@ -16,7 +21,7 @@
 
     li {
       padding: 7px 5px 7px 15px;
-      border-bottom: 5px solid #E0E0E0; // separation betweeen same-origin messages
+      border-bottom: 5px solid color("grey", "darken-1"); // separation betweeen same-origin messages
     }
     li:last-child {
       border-bottom: none;
@@ -25,8 +30,8 @@
       border-radius: 4px;
       margin: 5px 18px 24px;
       position: relative;
-      // width: 420px;
-      width: 250px;
+      width: fit-content;
+      clear:both;
 
       .content-text {
         display: inline-block;
@@ -36,7 +41,10 @@
         -moz-hyphens: auto;
         hyphens: auto;
         font-size: 1.14rem;
-        width: 187.5px;
+        max-width: 200px;
+        width: fit-content;
+        padding-right: 10px;
+
       }
 
       .content-timestamp {
@@ -47,13 +55,19 @@
       }
     }
     .message-sent {
-      background: #F0F4C3; //$md-lime-100;
-      margin-left: calc(100% - 250px); //message-bubble width
+      @extend .white-text;
+      background: $sentMessageBackground; //$md-lime-100;
+      width: fit-content;
+      float: right;
+      margin-left: calc(100% - width)
     }
     .message-received {
-      background: #FFF;
-      margin-left: 0px;
+      color: color("grey", "lighten-2");
+      background: $receivedMessageBackground;
+      float: left;
+      margin-right: calc(100% - width)
     }
+
     // .message-sent:before, .message-received:before {
     //   border: solid transparent;
     //   border-top-color: #E0E0E0;//$md-grey-400;
@@ -72,7 +86,7 @@
     //   left: 0;
     //   margin-left: -11px;
     // }
-    
+
     // properties for bubble start mark
     .message-sent:after, .message-received:after {
       border: solid transparent;
@@ -85,35 +99,42 @@
       width: 0;
     }
     .message-sent:after {
-      border-top-color: #F0F4C3; //$md-lime-100;
+      border-top-color: $sentMessageBackground; //$md-lime-100;
       left: 100%;
     }
     .message-received:after {
-      border-top-color: #FFF;
+      border-top-color: $receivedMessageBackground;
       left: 0;
     }
   }
 }
 .chat-header{
-  background: dimgrey;
+  @extend .white-text;
+  background: color("grey", "darken-3");
   text-align: center;
   height: 120px;
   font-size: 24px;
   font-style: normal;
   line-height: 120px;
-  color: whitesmoke;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+
 }
 
 .chat-window-input {
-  background: dimgrey;
+  background: color("grey", "darken-3");
   padding: 10px 10px 10px 25px;
   display: grid;
   grid-template-columns: auto max-content;
   grid-template-rows: auto;
   grid-template-areas: "input button";
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+  border-color: transparent;
 
   .chat-input {
     grid-area: input;
+    color: color("grey", "lighten-1");
     .md-text-field {
       font-size: 1.14rem;
     }
@@ -126,3 +147,4 @@
     }
   }
 }
+

@@ -12,10 +12,11 @@ class SmsSimulator extends Component{
 
     testMessages = () => { return [
         this.message(1, "please complete this survey", "received"),
-        this.message(2, "whats your gender?", "received"),
-        this.message(3, "female", "sent"),
-        this.message(4, "whats your age?", "received"),
-        this.message(5, "25", "sent")
+        this.message(2, "please be honest", "received"),
+        this.message(3, "whats your gender?", "received"),
+        this.message(4, "female", "sent"),
+        this.message(5, "whats your age?", "received"),
+        this.message(6, "25", "sent")
     ]}
 
     state = {
