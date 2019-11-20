@@ -1,9 +1,10 @@
 $receivedMessageBackground: color("grey", "darken-3");
 $sentMessageBackground: color("grey", "darken-4");
+$chatWindowBodyBackground: color("grey", "darken-1");
 
 .chat-window {
   @extend .z-depth-5;
-  width: calc(100% / 2);
+  width: calc(100% / 3);
   float: right;
   border-radius: 5px;
 }
@@ -13,7 +14,7 @@ $sentMessageBackground: color("grey", "darken-4");
   padding: 15px 15px;
   position: relative;
   z-index: 1;
-  background: color("grey", "darken-1");
+  background: $chatWindowBodyBackground;
 
   ul {
     list-style-type: none;
@@ -21,7 +22,14 @@ $sentMessageBackground: color("grey", "darken-4");
 
     li {
       padding: 7px 5px 7px 15px;
-      border-bottom: 5px solid color("grey", "darken-1"); // separation betweeen same-origin messages
+      border-radius: 7px;
+      border-bottom: 3px solid; // separation betweeen same-origin messages
+      border-top: 3px solid;
+      border-color: $chatWindowBodyBackground;
+      width: fit-content;
+    }
+    li:first-child {
+      border-top: none;
     }
     li:last-child {
       border-bottom: none;
@@ -30,8 +38,7 @@ $sentMessageBackground: color("grey", "darken-4");
       border-radius: 4px;
       margin: 5px 18px 24px;
       position: relative;
-      width: fit-content;
-      clear:both;
+      clear:both; //for mainteining a one bubble per row
 
       .content-text {
         display: inline-block;
@@ -44,7 +51,6 @@ $sentMessageBackground: color("grey", "darken-4");
         max-width: 200px;
         width: fit-content;
         padding-right: 10px;
-
       }
 
       .content-timestamp {
@@ -56,36 +62,20 @@ $sentMessageBackground: color("grey", "darken-4");
     }
     .message-sent {
       @extend .white-text;
-      background: $sentMessageBackground; //$md-lime-100;
+      background: $sentMessageBackground;
       width: fit-content;
+      margin-left: calc(100% - width);
       float: right;
-      margin-left: calc(100% - width)
+      clear: both;
     }
     .message-received {
       color: color("grey", "lighten-2");
       background: $receivedMessageBackground;
+      width: fit-content;
       float: left;
-      margin-right: calc(100% - width)
+      margin-right: calc(100% - width);
+      clear: both;
     }
-
-    // .message-sent:before, .message-received:before {
-    //   border: solid transparent;
-    //   border-top-color: #E0E0E0;//$md-grey-400;
-    //   border-width: 10px;
-    //   content: "";
-    //   height: 0;
-    //   position: absolute;
-    //   top: 0;
-    //   width: 0;
-    // }
-    // .message-sent:before {
-    //   left: 100%;
-    //   margin-left: -9px;
-    // }
-    // .message-received:before {
-    //   left: 0;
-    //   margin-left: -11px;
-    // }
 
     // properties for bubble start mark
     .message-sent:after, .message-received:after {
@@ -99,7 +89,7 @@ $sentMessageBackground: color("grey", "darken-4");
       width: 0;
     }
     .message-sent:after {
-      border-top-color: $sentMessageBackground; //$md-lime-100;
+      border-top-color: $sentMessageBackground;
       left: 100%;
     }
     .message-received:after {

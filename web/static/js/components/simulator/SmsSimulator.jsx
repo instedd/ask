@@ -89,9 +89,9 @@ const MessageBulk = props =>{
     const {messages} = props
     const sentMessage = messages[0].messageType === "sent"
     return (
-        <div className={"message-bubble " + (sentMessage ? "message-sent" : "message-received")}>
+        <div className={"message-bubble"}>
             {messages.map(message =>
-                <li key={message.id}>
+                <li key={message.id} className={"" +(sentMessage ? "message-sent" : "message-received")}>
                     <div className="content-text">
                         {message.messageBody.trim()}
                     </div>
@@ -132,11 +132,6 @@ class MessagesList extends Component {
         const { messages } = this.props
         const groupedMessages = groupBy(messages, (message) => (message.messageType))
 
-        // const messageList = messages.map((message, index) => {
-        //     return (
-        //         <MessageBulk key={`msg-bulk-${index}`} message={message}/>
-        //     )
-        // })
         return (
             <div className="chat-window-body">
                 <ul>
