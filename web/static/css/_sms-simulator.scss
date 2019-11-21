@@ -3,18 +3,20 @@ $sentMessageBackground: color("grey", "darken-4");
 $chatWindowBodyBackground: color("grey", "darken-2");
 $chatBorderBackground: color("grey", "darken-3");
 
+.simulator-container {
+  @extend .row;
+}
 .chat-window {
   @extend .z-depth-5;
-  width: calc(100% / 3);
-  float: right;
+  width: 100%;
   border-radius: 5px;
+  padding: 0;
 }
 .chat-window-body {
   height: 500px;
   overflow: auto;
   padding: 15px 15px;
   position: relative;
-  z-index: 1;
   background: $chatWindowBodyBackground;
 
   ul {
@@ -125,7 +127,9 @@ $chatBorderBackground: color("grey", "darken-3");
   border-bottom-right-radius: 5px;
   border-color: transparent;
   border-top: 1px solid $chatWindowBodyBackground;
-
+  input:focus::placeholder {
+    color:transparent;
+  }
 
   .chat-input {
     grid-area: input;
@@ -135,10 +139,10 @@ $chatBorderBackground: color("grey", "darken-3");
     }
     margin: 0px;
   }
-
   .chat-button {
     grid-area: button;
     padding: 15px;
+    cursor: pointer;
     button:hover {
       background: transparent;
     }

@@ -1,26 +1,12 @@
 import React, { Component, PropTypes } from 'react'
 import { connect } from 'react-redux'
 import { withRouter } from 'react-router'
-
-// import * as test from './testMessages'
+import * as test from './testMessages'
 
 class SmsSimulator extends Component{
 
-    message = (text, type) => {
-        return {messageBody: text, messageType: type}
-    }
-
-    testMessages = () => { return [
-        this.message("please complete this survey", "received"),
-        this.message("please be honest", "received"),
-        this.message("whats your gender?", "received"),
-        this.message("female", "sent"),
-        this.message("whats your age?", "received"),
-        this.message("25", "sent")
-    ]}
-
     state = {
-        messages: this.testMessages()
+        messages: test.baseMessages()
     }
 
     handleUserSentMessage = message => {
@@ -46,6 +32,7 @@ class SmsSimulator extends Component{
         }
     }
 
+    // test code: respond on user sent message
     componentDidUpdate() {
         const lastMessage = this.lastMessage()
         if (lastMessage && lastMessage.messageType === "sent"){
@@ -57,8 +44,10 @@ class SmsSimulator extends Component{
         const {messages} = this.state
         this.lastMessage()
         return(
-            <div>
-                <ChatWindow messages={messages} onSendMessage={this.handleUserSentMessage} chatTitle={"SMS mode"}/>
+            <div className="simulator-container">
+                <div className="col s4 offset-s8">
+                    <ChatWindow messages={messages} onSendMessage={this.handleUserSentMessage} chatTitle={"SMS mode"}/>
+                </div>
             </div>
         )
     }
