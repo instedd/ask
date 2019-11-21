@@ -111,6 +111,7 @@ $chatBorderBackground: color("grey", "darken-3");
   line-height: 90px;
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
+  border-bottom: 1px solid $chatWindowBodyBackground;
 }
 
 .chat-window-input {
@@ -123,6 +124,8 @@ $chatBorderBackground: color("grey", "darken-3");
   border-bottom-left-radius: 5px;
   border-bottom-right-radius: 5px;
   border-color: transparent;
+  border-top: 1px solid $chatWindowBodyBackground;
+
 
   .chat-input {
     grid-area: input;

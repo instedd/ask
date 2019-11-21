@@ -6,17 +6,17 @@ import { withRouter } from 'react-router'
 
 class SmsSimulator extends Component{
 
-    message = (id, text, type) => {
-        return {id: id, messageBody: text, messageType: type}
+    message = (text, type) => {
+        return {messageBody: text, messageType: type}
     }
 
     testMessages = () => { return [
-        this.message(1, "please complete this survey", "received"),
-        this.message(2, "please be honest", "received"),
-        this.message(3, "whats your gender?", "received"),
-        this.message(4, "female", "sent"),
-        this.message(5, "whats your age?", "received"),
-        this.message(6, "25", "sent")
+        this.message("please complete this survey", "received"),
+        this.message("please be honest", "received"),
+        this.message("whats your gender?", "received"),
+        this.message("female", "sent"),
+        this.message("whats your age?", "received"),
+        this.message("25", "sent")
     ]}
 
     state = {
@@ -90,8 +90,8 @@ const MessageBulk = props =>{
     const sentMessage = messages[0].messageType === "sent"
     return (
         <div className={"message-bubble"}>
-            {messages.map(message =>
-                <li key={message.id} className={"" +(sentMessage ? "message-sent" : "message-received")}>
+            {messages.map((message, ix) =>
+                <li key={ix} className={"" +(sentMessage ? "message-sent" : "message-received")}>
                     <div className="content-text">
                         {message.messageBody.trim()}
                     </div>
