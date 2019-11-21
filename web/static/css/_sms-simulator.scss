@@ -1,6 +1,7 @@
 $receivedMessageBackground: color("grey", "darken-3");
 $sentMessageBackground: color("grey", "darken-4");
-$chatWindowBodyBackground: color("grey", "darken-1");
+$chatWindowBodyBackground: color("grey", "darken-2");
+$chatBorderBackground: color("grey", "darken-3");
 
 .chat-window {
   @extend .z-depth-5;
@@ -22,7 +23,7 @@ $chatWindowBodyBackground: color("grey", "darken-1");
 
     li {
       padding: 7px 5px 7px 15px;
-      border-radius: 7px;
+      border-radius: 5px;
       border-bottom: 3px solid; // separation betweeen same-origin messages
       border-top: 3px solid;
       border-color: $chatWindowBodyBackground;
@@ -33,10 +34,12 @@ $chatWindowBodyBackground: color("grey", "darken-1");
     }
     li:last-child {
       border-bottom: none;
+      margin-bottom: 10px; // space between bubbles of different origin
     }
     .message-bubble {
       border-radius: 4px;
-      margin: 5px 18px 24px;
+      margin-left: 5px;
+      margin-right: 5px;
       position: relative;
       clear:both; //for mainteining a one bubble per row
 
@@ -100,19 +103,18 @@ $chatWindowBodyBackground: color("grey", "darken-1");
 }
 .chat-header{
   @extend .white-text;
-  background: color("grey", "darken-3");
+  background: $chatBorderBackground;
   text-align: center;
-  height: 120px;
+  height: 90px;
   font-size: 24px;
   font-style: normal;
-  line-height: 120px;
+  line-height: 90px;
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
-
 }
 
 .chat-window-input {
-  background: color("grey", "darken-3");
+  background: $chatBorderBackground;
   padding: 10px 10px 10px 25px;
   display: grid;
   grid-template-columns: auto max-content;
@@ -124,16 +126,21 @@ $chatWindowBodyBackground: color("grey", "darken-1");
 
   .chat-input {
     grid-area: input;
-    color: color("grey", "lighten-1");
+    color: color("grey", "lighten-2");
     .md-text-field {
       font-size: 1.14rem;
     }
+    margin: 0px;
   }
+
   .chat-button {
     grid-area: button;
     padding: 15px;
     button:hover {
       background: transparent;
+    }
+    .material-icons{
+      color: color("grey", "lighten-2");
     }
   }
 }

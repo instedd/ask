@@ -191,7 +191,9 @@ class ChatFooter extends Component {
                     placeholder="Write your message here"
                     onKeyPress={this.sendMessageIfEnterPressed}
                 />
-                <a onClick={this.sendMessage} className="chat-button">SEND</a>
+                <a onClick={this.sendMessage} className="chat-button">
+                    <i className='material-icons'>send</i>
+                </a>
             </div>
         )
     }
