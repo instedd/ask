@@ -2,7 +2,7 @@ import React, { Component, PropTypes } from 'react'
 import { connect } from 'react-redux'
 import * as actions from '../../actions/survey'
 import { translate } from 'react-i18next'
-import { RetriesHistogram } from '@instedd/surveda-d3-components'
+import RetriesHistogram from './RetriesHistogram'
 
 class SurveyRetriesPanel extends Component<any> {
   static propTypes = {

@@ -11,6 +11,7 @@
     "@instedd/surveda-d3-components": "1.0.13",
     "babel-preset-stage-0": "^6.5.0",
     "d3": "^3.5.17",
+    "d3-4": "npm:d3@^4.0.0",
     "date-fns": "^1.27.2",
     "draft-js": "^0.10.0",
     "draft-js-export-html": "^0.5.2",
