@@ -134,7 +134,7 @@ class SurveyShow extends Component<any, State> {
   }
 
   render() {
-    const { questionnaires, survey, respondentsByDisposition, reference, contactedRespondents, cumulativePercentages, target, project, t,
+    const { questionnaires, survey, respondentsByDisposition, reference, contactedRespondents, cumulativePercentages, target, project, t, projectId, surveyId,
       estimatedSuccessRate, initialSuccessRate, successRate, completionRate, completes, missing, pending, multiplier, needed, overviewType, router } = this.props
     const { stopUnderstood } = this.state
 
@@ -297,7 +297,7 @@ class SurveyShow extends Component<any, State> {
               </div>
               <Stats data={stats} />
               <Forecasts data={forecasts} ceil={100} forecast={survey.state == 'running'} />
-              { this.showHistograms() ? <SurveyRetriesPanel /> : null }
+              { this.showHistograms() ? <SurveyRetriesPanel projectId={projectId} surveyId={surveyId} target={target} /> : null }
               <div className='row' style={{ 'display': 'flex', 'alignItems': 'center', 'marginTop': '20px' }}>
                 <div style={{ 'width': '50%' }}>
                   <div className='header'>

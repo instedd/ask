@@ -4,14 +4,14 @@ import * as actions from '../../actions/survey'
 import { translate } from 'react-i18next'
 import RetriesHistogram from './RetriesHistogram'
 
-class SurveyRetriesPanel extends Component<any> {
+class SurveyRetriesPanel extends Component {
   static propTypes = {
     retriesHistograms: PropTypes.array,
-    dispatch: PropTypes.func,
+    dispatch: PropTypes.func.isRequired,
     projectId: PropTypes.string.isRequired,
     surveyId: PropTypes.string.isRequired,
-    t: PropTypes.func,
-    target: PropTypes.number
+    t: PropTypes.func.isRequired,
+    target: PropTypes.number.isRequired
   }
 
   componentWillMount() {
@@ -118,21 +118,9 @@ class SurveyRetriesPanel extends Component<any> {
 }
 
 const mapStateToProps = (state, ownProps) => {
-  const respondentsStatsRoot = state.respondentsStats[state.survey.data.id]
-  const surveyRetriesHistograms = state.surveyRetriesHistograms.surveyId == state.survey.data.id ? state.surveyRetriesHistograms.histograms : null
-
-  let target = 0
-
-  if (respondentsStatsRoot) {
-    target = respondentsStatsRoot.target
-  }
+  const surveyRetriesHistograms = ownProps.surveyId == state.survey.data.id ? state.surveyRetriesHistograms.histograms : null
 
   return ({
-    projectId: state.project.data.id,
-    project: state.project.data,
-    surveyId: state.survey.data.id,
-    survey: state.survey.data,
-    target: target,
     retriesHistograms: surveyRetriesHistograms
   })
 }
