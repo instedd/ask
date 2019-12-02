@@ -1,11 +1,11 @@
 export const baseMessages = () => {
   return [
-    message('please complete this survey', 'received'),
-    message('please be honest', 'received'),
-    message('whats your gender?', 'received'),
-    message('female', 'sent'),
-    message('whats your age?', 'received'),
-    message('25', 'sent')
+    message('please complete this survey', 'AO'),
+    message('please be honest', 'AO'),
+    message('whats your gender?', 'AO'),
+    message('female', 'AT'),
+    message('whats your age?', 'AO'),
+    message('25', 'AT')
   ]
 }
 

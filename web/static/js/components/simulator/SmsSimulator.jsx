@@ -8,13 +8,13 @@ class SmsSimulator extends Component {
     messages: test.baseMessages()
   }
 
-  handleUserSentMessage = message => {
-    const msg = { messageBody: message.messageBody, messageType: 'sent' }
+  handleATMessage = message => {
+    const msg = { messageBody: message.messageBody, messageType: 'AT' }
     this.addMessage(msg)
   }
 
-  handleBotSentMessage = message => {
-    const msg = { messageBody: message.messageBody, messageType: 'received' }
+  handleAOMessage = message => {
+    const msg = { messageBody: message.messageBody, messageType: 'AO' }
     this.addMessage(msg)
   }
 
@@ -33,8 +33,8 @@ class SmsSimulator extends Component {
   // test code: respond on user sent message
   componentDidUpdate() {
     const lastMessage = this.lastMessage()
-    if (lastMessage && lastMessage.messageType === 'sent') {
-      this.handleBotSentMessage({ messageBody: 'why you are asking: ' + lastMessage.messageBody + '?' })
+    if (lastMessage && lastMessage.messageType === 'AT') {
+      this.handleAOMessage({ messageBody: 'why you are asking: ' + lastMessage.messageBody + '?' })
     }
   }
 
@@ -44,7 +44,7 @@ class SmsSimulator extends Component {
     return (
       <div className='simulator-container'>
         <div className='col s4 offset-s8'>
-          <ChatWindow messages={messages} onSendMessage={this.handleUserSentMessage} chatTitle={'SMS mode'} />
+          <ChatWindow messages={messages} onSendMessage={this.handleATMessage} chatTitle={'SMS mode'} />
         </div>
       </div>
     )
@@ -85,11 +85,11 @@ ChatTitle.propTypes = {
 
 const MessageBulk = props => {
   const { messages } = props
-  const sentMessage = messages[0].messageType === 'sent'
+  const ATMessage = messages[0].messageType === 'AT'
   return (
     <div className={'message-bubble'}>
       {messages.map((message, ix) =>
-        <li key={ix} className={'' + (sentMessage ? 'message-sent' : 'message-received')}>
+        <li key={ix} className={ATMessage ? 'at-message' : 'ao-message'}>
           <div className='content-text'>
             {message.messageBody.trim()}
           </div>
@@ -206,8 +206,5 @@ class ChatFooter extends Component {
 ChatFooter.propTypes = {
   onSendMessage: PropTypes.func.isRequired
 }
-
-// const mapStateToProps = (state) => {}
-// export default withRouter(connect(mapStateToProps)(SmsSimulator))
 
 export default withRouter(SmsSimulator)

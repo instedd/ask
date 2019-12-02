@@ -1,5 +1,5 @@
-$receivedMessageBackground: color("grey", "darken-3");
-$sentMessageBackground: color("grey", "darken-4");
+$aoMessageBackground: color("grey", "darken-3");
+$atMessageBackground: color("grey", "darken-4");
 $chatWindowBodyBackground: color("grey", "darken-2");
 $chatBorderBackground: color("grey", "darken-3");
 
@@ -43,12 +43,11 @@ $chatBorderBackground: color("grey", "darken-3");
       margin-left: 5px;
       margin-right: 5px;
       position: relative;
-      clear:both; //for mainteining a one bubble per row
+      clear:both; //for maintaining a one bubble per row
 
       .content-text {
         display: inline-block;
-        // -ms-word-break: break-all;
-        // word-break: break-all;
+        overflow-wrap: break-word;
         -webkit-hyphens: auto;
         -moz-hyphens: auto;
         hyphens: auto;
@@ -65,17 +64,17 @@ $chatBorderBackground: color("grey", "darken-3");
         margin-left: 25px;
       }
     }
-    .message-sent {
+    .at-message {
       @extend .white-text;
-      background: $sentMessageBackground;
+      background: $atMessageBackground;
       width: fit-content;
       margin-left: calc(100% - width);
       float: right;
       clear: both;
     }
-    .message-received {
+    .ao-message {
       color: color("grey", "lighten-2");
-      background: $receivedMessageBackground;
+      background: $aoMessageBackground;
       width: fit-content;
       float: left;
       margin-right: calc(100% - width);
@@ -83,7 +82,7 @@ $chatBorderBackground: color("grey", "darken-3");
     }
 
     // properties for bubble start mark
-    .message-sent:after, .message-received:after {
+    .at-message:after, .ao-message:after {
       border: solid transparent;
       border-width: 7px;
       content: "";
@@ -93,12 +92,12 @@ $chatBorderBackground: color("grey", "darken-3");
       top: 0;
       width: 0;
     }
-    .message-sent:after {
-      border-top-color: $sentMessageBackground;
+    .at-message:after {
+      border-top-color: $atMessageBackground;
       left: 100%;
     }
-    .message-received:after {
-      border-top-color: $receivedMessageBackground;
+    .ao-message:after {
+      border-top-color: $aoMessageBackground;
       left: 0;
     }
   }
