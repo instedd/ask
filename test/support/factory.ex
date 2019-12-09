@@ -1,5 +1,6 @@
 defmodule Ask.Factory do
-  use ExMachina.Ecto, repo: Ask.Repo
+  use ExMachina
+  use ExMachina.EctoWithChangesetStrategy, repo: Ask.Repo, strict: false
 
   def audio_factory do
     %Ask.Audio{
