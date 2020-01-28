@@ -237,14 +237,18 @@ defmodule Ask.Runtime.VerboiceChannel do
     |> Repo.update!
   end
 
-  def callback(conn, %{"path" => ["status", respondent_id, _token], "CallStatus" => status, "CallDuration" => call_duration_seconds, "CallSid" => call_sid} = params) do
+  def callback(conn, params) do
+    callback(conn, params, Broker)
+  end
+
+  def callback(conn, %{"path" => ["status", respondent_id, _token], "CallStatus" => status, "CallDuration" => call_duration_seconds, "CallSid" => call_sid} = params, broker) do
     call_duration = call_duration_seconds |> String.to_integer
     respondent = Repo.get!(Respondent, respondent_id)
                  |> update_call_time_seconds(call_sid, call_duration)
     case status do
       "expired" ->
         # respondent is still being considered as active in Surveda
-        Broker.contact_attempt_expired(respondent)
+        broker.contact_attempt_expired(respondent)
       s when s in ["failed", "busy", "no-answer"] ->
         # respondent should no longer be considered as active
         respondent = RetriesHistogram.respondent_no_longer_active(respondent)
@@ -253,10 +257,6 @@ defmodule Ask.Runtime.VerboiceChannel do
     end
     SurvedaMetrics.increment_counter_with_label(:surveda_verboice_status_callback, [status])
     conn |> send_resp(200, "")
-  end
-
-  def callback(conn, params) do
-    callback(conn, params, Broker)
   end
 
   def callback(conn, params = %{"respondent" => respondent_id}, broker) do
