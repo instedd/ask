@@ -199,39 +199,39 @@ defmodule Ask.Runtime.VerboiceChannel do
   defp match_channel(_, _), do: false
 
   defp channel_failed(respondent, "failed", %{"CallStatusReason" => "Busy", "CallStatusCode" => code}) do
-    Survey.channel_failed(respondent, "User hangup (#{code})")
+    Ask.Runtime.Respondent.channel_failed(respondent, "User hangup (#{code})")
   end
 
   defp channel_failed(respondent, "failed", %{"CallStatusReason" => reason, "CallStatusCode" => code}) do
-    Survey.channel_failed(respondent, "#{reason} (#{code})")
+    Ask.Runtime.Respondent.channel_failed(respondent, "#{reason} (#{code})")
   end
 
   defp channel_failed(respondent, status, %{"CallStatusReason" => reason, "CallStatusCode" => code}) do
-    Survey.channel_failed(respondent, "#{status}: #{reason} (#{code})")
+    Ask.Runtime.Respondent.channel_failed(respondent, "#{status}: #{reason} (#{code})")
   end
 
   defp channel_failed(respondent, "failed", %{"CallStatusReason" => "Busy"}) do
-    Survey.channel_failed(respondent, "User hangup")
+    Ask.Runtime.Respondent.channel_failed(respondent, "User hangup")
   end
 
   defp channel_failed(respondent, "failed", %{"CallStatusReason" => reason}) do
-    Survey.channel_failed(respondent, "#{reason}")
+    Ask.Runtime.Respondent.channel_failed(respondent, "#{reason}")
   end
 
   defp channel_failed(respondent, status, %{"CallStatusReason" => reason}) do
-    Survey.channel_failed(respondent, "#{status}: #{reason}")
+    Ask.Runtime.Respondent.channel_failed(respondent, "#{status}: #{reason}")
   end
 
   defp channel_failed(respondent, "failed", %{"CallStatusCode" => code}) do
-    Survey.channel_failed(respondent, "(#{code})")
+    Ask.Runtime.Respondent.channel_failed(respondent, "(#{code})")
   end
 
   defp channel_failed(respondent, status, %{"CallStatusCode" => code}) do
-    Survey.channel_failed(respondent, "#{status} (#{code})")
+    Ask.Runtime.Respondent.channel_failed(respondent, "#{status} (#{code})")
   end
 
   defp channel_failed(respondent, status, _) do
-    Survey.channel_failed(respondent, status)
+    Ask.Runtime.Respondent.channel_failed(respondent, status)
   end
 
   defp update_call_time_seconds(respondent, call_sid, call_time) do
@@ -253,7 +253,7 @@ defmodule Ask.Runtime.VerboiceChannel do
           case status do
             "expired" ->
               # respondent is still being considered as active in Surveda
-              Survey.contact_attempt_expired(respondent)
+              Ask.Runtime.Respondent.contact_attempt_expired(respondent)
             s when s in ["failed", "busy", "no-answer"] ->
               # respondent should no longer be considered as active
               respondent = RetriesHistogram.respondent_no_longer_active(respondent)

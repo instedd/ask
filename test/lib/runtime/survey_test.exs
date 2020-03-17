@@ -34,7 +34,7 @@ defmodule Ask.Runtime.SurveyTest do
       respondent = Repo.get(Respondent, respondent.id)
       assert respondent.state == "active"
 
-      Survey.delivery_confirm(respondent, "Do you smoke?")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you smoke?")
 
 
       reply = Survey.sync_step(respondent, Flow.Message.reply("Yes"), nil)
@@ -43,7 +43,7 @@ defmodule Ask.Runtime.SurveyTest do
       %Respondent{ timeout_at: first_timeout} = respondent = Repo.get(Respondent, respondent.id)
       assert 1 == %{survey_id: survey.id} |> RetryStat.stats() |> RetryStat.count(%{attempt: 1, retry_time: RetryStat.retry_time(first_timeout), ivr_active: false, mode: sequence_mode})
 
-      Survey.delivery_confirm(respondent, "Do you exercise")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you exercise")
 
       hours_passed = 3
       time_passes(hours: hours_passed)
@@ -58,13 +58,13 @@ defmodule Ask.Runtime.SurveyTest do
       assert 0 == stats |> RetryStat.count(%{attempt: 1, retry_time: RetryStat.retry_time(first_timeout), ivr_active: false, mode: sequence_mode})
       assert 1 == stats |> RetryStat.count(%{attempt: 1, retry_time: RetryStat.retry_time(hours_after_timeout), ivr_active: false, mode: sequence_mode})
 
-      Survey.delivery_confirm(respondent, "Which is the second perfect number?")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Which is the second perfect number?")
 
       reply = Survey.sync_step(respondent, Flow.Message.reply("99"))
       assert {:reply, ReplyHelper.simple("What's the number of this question?", "What's the number of this question??")} = reply
 
       respondent = Repo.get(Respondent, respondent.id)
-      Survey.delivery_confirm(respondent, "What's the number of this question?")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "What's the number of this question?")
 
       reply = Survey.sync_step(respondent, Flow.Message.reply("11"))
       assert {:end, {:reply, ReplyHelper.simple("Thank you", "Thanks for completing this survey")}} = reply
@@ -365,25 +365,25 @@ defmodule Ask.Runtime.SurveyTest do
       respondent = Repo.get(Respondent, respondent.id)
       assert respondent.state == "active"
 
-      Survey.delivery_confirm(respondent, "Do you smoke?")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you smoke?")
 
       reply = Survey.sync_step(respondent, Flow.Message.reply("Yes"))
       assert {:reply, ReplyHelper.simple("Do you exercise", "Do you exercise? Reply 1 for YES, 2 for NO")} = reply
 
       respondent = Repo.get(Respondent, respondent.id)
-      Survey.delivery_confirm(respondent, "Do you exercise")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you exercise")
 
       reply = Survey.sync_step(respondent, Flow.Message.reply("Yes"))
       assert {:reply, ReplyHelper.simple("Which is the second perfect number?", "Which is the second perfect number??")} = reply
 
       respondent = Repo.get(Respondent, respondent.id)
-      Survey.delivery_confirm(respondent, "Which is the second perfect number?")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Which is the second perfect number?")
 
       reply = Survey.sync_step(respondent, Flow.Message.reply("99"))
       assert {:reply, ReplyHelper.simple("What's the number of this question?", "What's the number of this question??")} = reply
 
       respondent = Repo.get(Respondent, respondent.id)
-      Survey.delivery_confirm(respondent, "What's the number of this question?")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "What's the number of this question?")
 
       reply = Survey.sync_step(respondent, Flow.Message.reply("11"))
       assert :end = reply
@@ -509,25 +509,25 @@ defmodule Ask.Runtime.SurveyTest do
       respondent = Repo.get(Respondent, respondent.id)
       assert respondent.state == "active"
 
-      Survey.delivery_confirm(respondent, "Do you smoke?")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you smoke?")
 
       reply = Survey.sync_step(respondent, Flow.Message.reply("Yes"))
       assert {:reply, ReplyHelper.simple("Do you exercise", "Do you exercise? Reply 1 for YES, 2 for NO")} = reply
 
       respondent = Repo.get(Respondent, respondent.id)
-      Survey.delivery_confirm(respondent, "Do you exercise")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you exercise")
 
       reply = Survey.sync_step(respondent, Flow.Message.reply("Yes"))
       assert {:reply, ReplyHelper.simple("Which is the second perfect number?", "Which is the second perfect number??")} = reply
 
       respondent = Repo.get(Respondent, respondent.id)
-      Survey.delivery_confirm(respondent, "Which is the second perfect number?")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Which is the second perfect number?")
 
       reply = Survey.sync_step(respondent, Flow.Message.reply("99"))
       assert {:reply, ReplyHelper.simple("What's the number of this question?", "What's the number of this question??")} = reply
 
       respondent = Repo.get(Respondent, respondent.id)
-      Survey.delivery_confirm(respondent, "What's the number of this question?")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "What's the number of this question?")
 
       reply = Survey.sync_step(respondent, Flow.Message.reply("11"))
       assert {:end, {:reply, ReplyHelper.simple("Bye", "This is the last question")}} = reply
@@ -845,7 +845,7 @@ defmodule Ask.Runtime.SurveyTest do
       assert_received [:ask, ^test_channel, %Respondent{sanitized_phone_number: ^phone_number}, _token, ReplyHelper.simple("Do you smoke?", "Do you smoke? Reply 1 for YES, 2 for NO")]
 
       respondent = Repo.get(Respondent, respondent.id)
-      Survey.delivery_confirm(respondent, "Do you smoke?")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you smoke?")
 
       survey = Repo.get(Ask.Survey, survey.id)
       assert survey.state == "running"
@@ -856,20 +856,20 @@ defmodule Ask.Runtime.SurveyTest do
       assert {:reply, ReplyHelper.error("Wrong answer", "Do you smoke?", "Do you smoke? Reply 1 for YES, 2 for NO")} = reply
 
       respondent = Repo.get(Respondent, respondent.id)
-      Survey.delivery_confirm(respondent, "Error")
-      Survey.delivery_confirm(respondent, "Do you smoke?")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Error")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you smoke?")
 
       reply = Survey.sync_step(respondent, Flow.Message.reply("No"))
       assert {:reply, ReplyHelper.simple("Satisfaction", "Did you enjoy this survey?")} = reply
 
       respondent = Repo.get(Respondent, respondent.id)
-      Survey.delivery_confirm(respondent, "Satisfaction")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Satisfaction")
 
       reply = Survey.sync_step(respondent, Flow.Message.reply("No"))
       assert {:end, {:reply, ReplyHelper.simple("Completed", "Quota completed")}} = reply
 
       respondent = Repo.get(Respondent, respondent.id)
-      Survey.delivery_confirm(respondent, "Completed")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Completed")
 
       :ok = logger |> GenServer.stop
 
@@ -1283,7 +1283,7 @@ defmodule Ask.Runtime.SurveyTest do
       assert_received [:ask, ^test_channel, %Respondent{sanitized_phone_number: ^phone_number}, _token, ReplyHelper.simple("Do you smoke?", "Do you smoke? Reply 1 for YES, 2 for NO")]
 
       respondent = Repo.get(Respondent, respondent.id)
-      Survey.delivery_confirm(respondent, "Do you smoke?")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you smoke?")
 
       respondent = Repo.get(Respondent, respondent.id)
       reply = Survey.sync_step(respondent, Flow.Message.reply("No"))
@@ -1416,7 +1416,7 @@ defmodule Ask.Runtime.SurveyTest do
     Broker.poll
 
     respondent = Repo.get(Respondent, respondent.id)
-    Survey.delivery_confirm(respondent, "Do you exercise?")
+    Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you exercise?")
 
     Survey.sync_step(respondent, Flow.Message.reply("Yes"))
 
@@ -1486,7 +1486,7 @@ defmodule Ask.Runtime.SurveyTest do
     respondent = Repo.get(Respondent, respondent.id)
     assert respondent.disposition == "queued"
 
-    Survey.delivery_confirm(respondent, "Do you smoke?")
+    Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you smoke?")
 
     updated_respondent = Repo.get(Respondent, respondent.id)
     assert updated_respondent.state == "active"
@@ -1525,7 +1525,7 @@ defmodule Ask.Runtime.SurveyTest do
     respondent = Repo.get(Respondent, respondent.id)
     assert respondent.disposition == "queued"
 
-    Survey.delivery_confirm(respondent, "Do you smoke?")
+    Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you smoke?")
 
     respondent = Repo.get(Respondent, respondent.id)
     assert respondent.state == "active"
@@ -1628,7 +1628,7 @@ defmodule Ask.Runtime.SurveyTest do
     respondent = Repo.get(Respondent, respondent.id)
     assert respondent.state == "active"
 
-    Survey.delivery_confirm(respondent, "Do you exercise?")
+    Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you exercise?")
 
     respondent = Repo.get(Respondent, respondent.id)
     assert respondent.state == "active"
@@ -1672,7 +1672,7 @@ defmodule Ask.Runtime.SurveyTest do
     assert_received [:ask, ^test_channel, ^respondent, ^token, ReplyHelper.simple("Do you exercise?", "Do you exercise? Reply 1 for YES, 2 for NO")]
 
     respondent = Repo.get!(Respondent, respondent.id)
-    Survey.delivery_confirm(respondent, "Do you exercise?")
+    Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you exercise?")
     Survey.sync_step(respondent, Flow.Message.reply("Yes"))
 
     respondent = Repo.get!(Respondent, respondent.id)
@@ -1934,7 +1934,7 @@ defmodule Ask.Runtime.SurveyTest do
     assert respondent.state == "active"
     assert respondent.disposition == "queued"
 
-    Survey.delivery_confirm(respondent, "Do you smoke?")
+    Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you smoke?")
 
     respondent = Repo.get(Respondent, respondent.id)
     assert respondent.state == "active"
@@ -1947,7 +1947,7 @@ defmodule Ask.Runtime.SurveyTest do
     assert respondent.state == "active"
     assert respondent.disposition == "started"
 
-    Survey.delivery_confirm(respondent, "Do you exercise?")
+    Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you exercise?")
 
     Respondent.changeset(respondent, %{timeout_at: Timex.now |> Timex.shift(minutes: -1)}) |> Repo.update
     Broker.handle_info(:poll, nil)
@@ -2431,7 +2431,7 @@ defmodule Ask.Runtime.SurveyTest do
     assert message == "Please enter #{Routes.mobile_survey_url(Ask.Endpoint, :index, respondent.id, token: Respondent.token(respondent.id))}"
 
     respondent = Repo.get(Respondent, respondent.id)
-    Survey.delivery_confirm(respondent, "Contact", "sms")
+    Ask.Runtime.Respondent.delivery_confirm(respondent, "Contact", "sms")
 
     respondent = Repo.get(Respondent, respondent.id)
     assert respondent.disposition == "contacted"
@@ -2439,7 +2439,7 @@ defmodule Ask.Runtime.SurveyTest do
 
   test "it doesn't crash on channel_failed when there's no session" do
     respondent = insert(:respondent)
-    assert Survey.channel_failed(respondent) == :ok
+    assert Ask.Runtime.Respondent.channel_failed(respondent) == :ok
   end
 
   test "when channel fails a survey log entry is created" do
@@ -2451,7 +2451,7 @@ defmodule Ask.Runtime.SurveyTest do
 
     respondent = Repo.get(Respondent, respondent.id)
 
-    Survey.channel_failed(respondent, "The channel failed")
+    Ask.Runtime.Respondent.channel_failed(respondent, "The channel failed")
 
     disposition_histories = Repo.all(RespondentDispositionHistory)
     assert disposition_histories |> length == 2
@@ -2493,7 +2493,7 @@ defmodule Ask.Runtime.SurveyTest do
     {:ok, broker} = Broker.start_link
     Broker.poll
 
-    Survey.delivery_confirm(Repo.get(Respondent, respondent.id), "Do you smoke?")
+    Ask.Runtime.Respondent.delivery_confirm(Repo.get(Respondent, respondent.id), "Do you smoke?")
 
     reply = Survey.sync_step(Repo.get(Respondent, respondent.id), Flow.Message.reply("1-734-555-1212"))
     assert {:reply, ReplyHelper.error("You have entered an invalid answer", "Do you smoke?", "Do you smoke? Reply 1 for YES, 2 for NO")} = reply
@@ -2598,7 +2598,7 @@ defmodule Ask.Runtime.SurveyTest do
 
   defp confirm_delivery(message) do
     respondent = Repo.one!(Respondent)
-    Survey.delivery_confirm(respondent, message)
+    Ask.Runtime.Respondent.delivery_confirm(respondent, message)
   end
 
   defp start_test(steps) do

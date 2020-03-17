@@ -887,7 +887,7 @@ defmodule Ask.Runtime.BrokerTest do
       assert respondent.state == "active"
       assert respondent.disposition == "queued"
 
-      Ask.Runtime.Survey.delivery_confirm(respondent, "Do you smoke?")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you smoke?")
 
       respondent = Repo.get(Respondent, respondent.id)
       assert respondent.disposition == "contacted"
@@ -939,7 +939,7 @@ defmodule Ask.Runtime.BrokerTest do
       assert respondent.state == "active"
       assert respondent.disposition == "queued"
 
-      Ask.Runtime.Survey.delivery_confirm(respondent, "Do you smoke?")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you smoke?")
 
       respondent = Repo.get(Respondent, respondent.id)
       assert respondent.state == "active"
@@ -952,7 +952,7 @@ defmodule Ask.Runtime.BrokerTest do
       assert respondent.state == "active"
       assert respondent.disposition == "started"
 
-      Ask.Runtime.Survey.delivery_confirm(respondent, "Do you exercise?")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you exercise?")
 
       now = Timex.now
 
@@ -996,7 +996,7 @@ defmodule Ask.Runtime.BrokerTest do
       assert respondent.state == "active"
       assert respondent.disposition == "queued"
 
-      Ask.Runtime.Survey.delivery_confirm(respondent, "Do you smoke?")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you smoke?")
 
       respondent = Repo.get(Respondent, respondent.id)
       assert respondent.state == "active"
@@ -1009,7 +1009,7 @@ defmodule Ask.Runtime.BrokerTest do
       assert respondent.state == "active"
       assert respondent.disposition == "interim partial"
 
-      Ask.Runtime.Survey.delivery_confirm(respondent, "Do you exercise?")
+      Ask.Runtime.Respondent.delivery_confirm(respondent, "Do you exercise?")
 
       now = Timex.now
 

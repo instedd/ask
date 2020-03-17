@@ -211,7 +211,7 @@ defmodule Ask.Runtime.Broker do
       Respondent.with_lock(respondent_id, fn respondent ->
         if(respondent.state == "stalled") do # the respondent obtained inside the lock may no longer be "stalled"
           respondent = RetriesHistogram.remove_respondent(respondent)
-          Ask.Runtime.Survey.update_respondent(respondent, :failed)
+          Ask.Runtime.Respondent.update_respondent(respondent, :failed)
         end
       end)
     end)
