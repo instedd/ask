@@ -435,6 +435,11 @@ class RespondentIndex extends Component<Props, State> {
             {interactionsCsvLink}
           </ul>
         </Modal>
+        <div className='input-field'>
+          <input type='search' className='search-input' />
+          <i className='material-icons grey-text'>search</i>
+          <span className='small-text-bellow'>Filter by properties using the following format <em>property:value[value,...].</em> <a href='#'>View advanced search syntax</a></span>
+        </div>
         <CardTable title={title} footer={footer} tableScroll>
           <thead>
             <tr>
