@@ -425,8 +425,8 @@ defmodule Ask.Survey do
     completed_respondents = get_completed_respondents(survey, respondents_by_disposition)
     additional_completes = respondents_target - completed_respondents
     estimated_success_rate = estimated_success_rate(initial_success_rate, current_success_rate, completion_rate)
-    exhausted = exhausted_respondents(respondents_by_disposition)
-    available = not_exhausted_respondents(respondents_by_disposition)
+    exhausted = exhausted_respondents(respondents_by_disposition, survey.count_partial_results)
+    available = not_exhausted_respondents(respondents_by_disposition, survey.count_partial_results)
     needed_to_complete = Kernel.trunc(Float.round(additional_completes / estimated_success_rate))
     additional_respondents = if needed_to_complete - available > 0, do: needed_to_complete - available, else: 0
     success_rate = if exhausted > 0, do: Float.round(current_success_rate, 3), else: 0.0
@@ -449,8 +449,8 @@ defmodule Ask.Survey do
   end
 
   def get_completion_rate(survey, respondents_by_disposition, respondents_target) do
-    disposition_filter = if survey.count_partial_results, do: ["completed", "interim partial"], else: ["completed"]
-    completed_respondents = successful_respondents(survey, respondents_by_disposition, disposition_filter)
+    completed_dispositions = Respondent.completed_dispositions(survey.count_partial_results)
+    completed_respondents = successful_respondents(survey, respondents_by_disposition, completed_dispositions)
     completion_rate(completed_respondents, respondents_target)
   end
 
@@ -460,13 +460,13 @@ defmodule Ask.Survey do
 
   def get_success_rate(survey, respondents_by_disposition) do
     completed_respondents = get_completed_respondents(survey, respondents_by_disposition)
-    exhausted_respondents = exhausted_respondents(respondents_by_disposition)
+    exhausted_respondents = exhausted_respondents(respondents_by_disposition, survey.count_partial_results)
     success_rate(completed_respondents, exhausted_respondents)
   end
 
   def get_completed_respondents(survey, respondents_by_disposition) do
-    disposition_filter = if survey.count_partial_results, do: ["completed", "partial"], else: ["completed"]
-    sum_respondents_by_disposition_filter(respondents_by_disposition, disposition_filter)
+    completed_dispositions = Respondent.completed_dispositions(survey.count_partial_results)
+    sum_respondents_by_disposition_filter(respondents_by_disposition, completed_dispositions)
   end
 
   def success_rate(_, 0), do: 1.0
@@ -538,14 +538,34 @@ defmodule Ask.Survey do
 
   def successful_respondents(quota_completed, _, _), do: quota_completed |> Decimal.to_integer
 
-  def exhausted_respondents(respondents_by_disposition) do
-    disposition_filter = Respondent.final_dispositions()
-    respondents_by_disposition |> sum_respondents_by_disposition_filter(disposition_filter)
+  defp add_interim_partial_filter(disposition_filter, count_partial_results) do
+    if (count_partial_results) do
+      disposition_filter ++ ["interim partial"]
+    else
+      disposition_filter
+    end
   end
 
-  def not_exhausted_respondents(respondents_by_disposition) do
+  defp exhausted_respondents(respondents_by_disposition, count_partial_results) do
+    disposition_filter = Respondent.final_dispositions()
+      |> add_interim_partial_filter(count_partial_results)
+    respondents_by_disposition
+      |> sum_respondents_by_disposition_filter(disposition_filter)
+  end
+
+  defp remove_interim_partial_filter(disposition_filter, count_partial_results) do
+    if (count_partial_results) do
+      List.delete(disposition_filter, "interim_partial")
+    else
+      disposition_filter
+    end
+  end
+
+  defp not_exhausted_respondents(respondents_by_disposition, count_partial_results) do
     disposition_filter = Respondent.non_final_dispositions()
-    respondents_by_disposition |> sum_respondents_by_disposition_filter(disposition_filter)
+      |> remove_interim_partial_filter(count_partial_results)
+    respondents_by_disposition
+      |> sum_respondents_by_disposition_filter(disposition_filter)
   end
 
   def sum_respondents_by_disposition_filter(respondents_by_disposition, disposition_filter) do

@@ -117,6 +117,10 @@ defmodule Ask.Respondent do
     "mobile_web_code_#{respondent_id}"
   end
 
+  def completed_dispositions(_count_partial_results = false), do: ["completed"]
+
+  def completed_dispositions(_count_partial_results = true), do: ["completed", "partial", "interim partial"]
+
   def final_dispositions do
     ["failed", "unresponsive", "ineligible", "rejected", "breakoff", "refused", "partial", "completed"]
   end

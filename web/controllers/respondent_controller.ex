@@ -156,10 +156,7 @@ defmodule Ask.RespondentController do
       |> Enum.map(fn {_, c} -> c end)
       |> Enum.sum
 
-    dispositions_for_completion = case survey.count_partial_results do
-      true -> ["completed", "partial", "interim partial"]
-      _ -> ["completed"]
-    end
+    dispositions_for_completion = Respondent.completed_dispositions(survey.count_partial_results)
 
     completed_or_partial = total_respondents_by_disposition
       |> Enum.filter(fn {d, _} -> d in dispositions_for_completion end)
