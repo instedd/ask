@@ -15,7 +15,9 @@ import {
   Tooltip,
   PagingFooter,
   MainAction,
-  Action
+  Action,
+  Dropdown,
+  DropdownItem
 } from '../ui'
 import RespondentRow from './RespondentRow'
 import * as routes from '../../routes'
@@ -536,6 +538,18 @@ class RespondentIndex extends Component<Props, State> {
     }
     const [fileId, linkId] = ['file', 'link']
 
+    const titleWithColumnsMenu = <div className='respondent-index-table-title'>
+      <div>
+        {title}
+      </div>
+      <Dropdown className='options columns-menu' dataBelowOrigin={false}
+        label={<i className='material-icons'>more_vert</i>}>
+        <DropdownItem className='dots'>
+          <i className='material-icons'>more_vert</i>
+        </DropdownItem>
+      </Dropdown>
+    </div>
+
     return (
       <div className='white'>
         <div dangerouslySetInnerHTML={{
@@ -547,7 +561,7 @@ class RespondentIndex extends Component<Props, State> {
         { this.downloadModal({itemType: fileId}) }
         { this.downloadModal({itemType: linkId}) }
         { this.respondentsFilter() }
-        <CardTable title={title} footer={footer} tableScroll>
+        <CardTable title={titleWithColumnsMenu} footer={footer} tableScroll>
           <thead>
             <tr>
               <SortableHeader text={t('Respondent ID')} property='phoneNumber' sortBy={sortBy} sortAsc={sortAsc} onClick={() => this.sortBy('phoneNumber')} />
