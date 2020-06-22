@@ -159,14 +159,22 @@ class RespondentIndex extends Component<Props, State> {
     return [...new Set(flatten(surveyModes))]
   }
 
-  getModeAttempts() {
-    const {survey, t} = this.props
-    let modes = this.getModes(survey.mode)
-    let attemptsHeader = modes.map(function(mode) {
-      const capitalize = str => str.charAt(0).toUpperCase() + str.slice(1)
-      return <th className='thNumber' key={mode}>{t('{{mode}} Attempts', {mode: capitalize(mode)})}</th>
+  getModeAttemptsHeaders() {
+    const { survey, t } = this.props
+    const renderHeader = (displayText, key) =>
+      this.renderHeader({
+        displayText: displayText,
+        key: key,
+        sortable: false,
+        type: 'number'
+      })
+    return this.getModes(survey.mode).map(function(mode) {
+      const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1)
+      return renderHeader(
+        t('{{mode}} Attempts', { mode: capitalize(mode) }),
+        mode
+      )
     })
-    return attemptsHeader
   }
 
   resultsAccessLink() {
@@ -455,14 +463,27 @@ class RespondentIndex extends Component<Props, State> {
     )
   }
 
+  renderHeader({displayText, key, sortable, type}) {
+    const { sortBy, sortAsc } = this.props
+    let className = classNames({
+      'thNumber': type === 'number',
+      'thDate': type === 'date'
+    })
+
+    if (sortable) {
+      return <SortableHeader text={displayText} property={key} sortBy={sortBy}
+        sortAsc={sortAsc} onClick={() => this.sortBy(key)} />
+    } else {
+      return <th className={className} key={key}>{displayText}</th>
+    }
+  }
+
   render() {
     const { project,
       survey,
       questionnaires,
       totalCount,
       order,
-      sortBy,
-      sortAsc,
       t
     } = this.props
     const loading = (
@@ -533,7 +554,12 @@ class RespondentIndex extends Component<Props, State> {
     let colspan = respondentsFieldName.length + 3
     let variantHeader = null
     if (hasComparisons) {
-      variantHeader = <th>{t('Variant')}</th>
+      variantHeader = this.renderHeader({
+        displayText: t('Variant'),
+        key: 'variant',
+        sortable: false,
+        type: null
+      })
       colspan += 1
     }
     const [fileId, linkId] = ['file', 'link']
@@ -564,13 +590,43 @@ class RespondentIndex extends Component<Props, State> {
         <CardTable title={titleWithColumnsMenu} footer={footer} tableScroll>
           <thead>
             <tr>
-              <SortableHeader text={t('Respondent ID')} property='phoneNumber' sortBy={sortBy} sortAsc={sortAsc} onClick={() => this.sortBy('phoneNumber')} />
-              <th>{t('Disposition')}</th>
-              <SortableHeader className='thDate' text={t('Date')} property='date' sortBy={sortBy} sortAsc={sortAsc} onClick={() => this.sortBy('date')} />
-              {this.getModeAttempts()}
-              {respondentsFieldName.map(field =>
-                <th className={classNames({'thNumber': this.fieldIsNumeric(numericFields, field)})} key={field}>{field}</th>
-              )}
+              {
+                this.renderHeader({
+                  displayText: t('Respondent ID'),
+                  key: 'phoneNumber',
+                  sortable: true,
+                  type: null
+                })
+              }
+              {
+                this.renderHeader({
+                  displayText: t('Disposition'),
+                  key: 'disposition',
+                  sortable: false,
+                  type: null
+                })
+              }
+              {
+                this.renderHeader({
+                  displayText: t('Date'),
+                  key: 'date',
+                  sortable: true,
+                  type: 'date'
+                })
+              }
+              {
+                this.getModeAttemptsHeaders()
+              }
+              {
+                respondentsFieldName.map(field => (
+                  this.renderHeader({
+                    displayText: field,
+                    key: field,
+                    sortable: false,
+                    type: this.fieldIsNumeric(numericFields, field) ? 'number' : null
+                  })
+                ))
+              }
               {variantHeader}
             </tr>
           </thead>
