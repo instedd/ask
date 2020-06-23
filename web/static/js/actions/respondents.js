@@ -37,7 +37,8 @@ export const fetchRespondents = (
             response.result,
             filter,
             sortBy,
-            sortAsc
+            sortAsc,
+            response.respondentsFields
           )
         )
       }
@@ -53,7 +54,7 @@ export const receiveRespondentsStats = (response) => ({
   response
 })
 
-export const receiveRespondents = (surveyId, page, respondents, respondentsCount, order, filter, sortBy, sortAsc) => ({
+export const receiveRespondents = (surveyId, page, respondents, respondentsCount, order, filter, sortBy, sortAsc, fields) => ({
   type: RECEIVE_RESPONDENTS,
   surveyId,
   page,
@@ -62,7 +63,8 @@ export const receiveRespondents = (surveyId, page, respondents, respondentsCount
   order,
   filter,
   sortBy,
-  sortAsc
+  sortAsc,
+  fields
 })
 
 export const createRespondent = (response) => ({

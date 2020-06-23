@@ -12,7 +12,8 @@ const initialState = {
     size: 5,
     totalCount: 0
   },
-  filter: null
+  filter: null,
+  fields: null
 }
 
 export default (state = initialState, action) => {
@@ -60,5 +61,6 @@ const receiveRespondents = (state, action) => ({
     ...state.page,
     number: action.page,
     totalCount: action.respondentsCount
-  }
+  },
+  fields: action.fields
 })

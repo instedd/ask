@@ -9,7 +9,8 @@ export class Dropdown extends Component {
     constrainWidth: PropTypes.bool,
     readOnly: PropTypes.bool,
     dataBelowOrigin: PropTypes.bool,
-    className: PropTypes.string
+    className: PropTypes.string,
+    onInitHook: PropTypes.func
   }
 
   constructor(props) {
@@ -18,7 +19,9 @@ export class Dropdown extends Component {
   }
 
   componentDidMount() {
-    if (!this.props.readOnly) $(this.refs.node).dropdown()
+    const {readOnly, onInitHook} = this.props
+    if (!readOnly) $(this.refs.node).dropdown()
+    if (onInitHook) onInitHook()
   }
 
   render() {

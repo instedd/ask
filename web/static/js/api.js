@@ -76,6 +76,7 @@ const respondentsCallback = (json, schema) => {
   return () => {
     let normalized = normalize(camelizeKeys(json.data.respondents), schema)
     normalized.respondentsCount = parseInt(json.meta.count)
+    normalized.respondentsFields = json.meta.fields
     return normalized
   }
 }

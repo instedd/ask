@@ -51,7 +51,8 @@ type Props = {
   actions: any,
   router: Object,
   filter: string,
-  q: string
+  q: string,
+  fields: Array<Object>
 }
 
 type State = {
@@ -478,13 +479,25 @@ class RespondentIndex extends Component<Props, State> {
     }
   }
 
+  columnsMenuOption({key, displayText, checked}) {
+    return <DropdownItem className={key}>
+      <a>
+        <i className='material-icons'>{
+          checked ? 'check_box' : 'check_box_outline_blank'
+        }
+        </i>{displayText}
+      </a>
+    </DropdownItem>
+  }
+
   render() {
     const { project,
       survey,
       questionnaires,
       totalCount,
       order,
-      t
+      t,
+      fields
     } = this.props
     const loading = (
       !project ||
@@ -564,15 +577,48 @@ class RespondentIndex extends Component<Props, State> {
     }
     const [fileId, linkId] = ['file', 'link']
 
+    const onInitHook = columns => () => {
+      columns.map(c => {
+        $(`.dropdown-content > .${c.key}`).on('click', function(event) {
+          if (event.target.innerHTML === 'check_box') {
+            alert(`Uncheck ${c.displayText}!`)
+          } else if (event.target.innerHTML === 'check_box_outline_blank') {
+            alert(`Check ${c.displayText}!`)
+          }
+          event.stopPropagation()
+        })
+      })
+    }
+
+    const columns = [
+      {
+        key: 'foo',
+        displayText: 'Foo'
+      },
+      {
+        key: 'bar',
+        displayText: 'Bar'
+      }
+    ]
+
     const titleWithColumnsMenu = <div className='respondent-index-table-title'>
       <div>
         {title}
       </div>
-      <Dropdown className='options columns-menu' dataBelowOrigin={false}
+      <Dropdown onInitHook={onInitHook(columns)} className='options columns-menu' dataBelowOrigin={false}
         label={<i className='material-icons'>more_vert</i>}>
         <DropdownItem className='dots'>
           <i className='material-icons'>more_vert</i>
         </DropdownItem>
+        {
+          fields.map(field =>
+            this.columnsMenuOption({
+              key: field.key,
+              displayText: field.displayText,
+              checked: true
+            })
+          )
+        }
       </Dropdown>
     </div>
 
@@ -591,41 +637,14 @@ class RespondentIndex extends Component<Props, State> {
           <thead>
             <tr>
               {
-                this.renderHeader({
-                  displayText: t('Respondent ID'),
-                  key: 'phoneNumber',
-                  sortable: true,
-                  type: null
-                })
-              }
-              {
-                this.renderHeader({
-                  displayText: t('Disposition'),
-                  key: 'disposition',
-                  sortable: false,
-                  type: null
-                })
-              }
-              {
-                this.renderHeader({
-                  displayText: t('Date'),
-                  key: 'date',
-                  sortable: true,
-                  type: 'date'
-                })
-              }
-              {
-                this.getModeAttemptsHeaders()
-              }
-              {
-                respondentsFieldName.map(field => (
+                fields.map(field =>
                   this.renderHeader({
-                    displayText: field,
-                    key: field,
-                    sortable: false,
-                    type: this.fieldIsNumeric(numericFields, field) ? 'number' : null
+                    displayText: field.displayText,
+                    key: field.key,
+                    sortable: field.sortable,
+                    type: field.type
                   })
-                ))
+                )
               }
               {variantHeader}
             </tr>
@@ -675,7 +694,7 @@ class RespondentIndex extends Component<Props, State> {
 
 const mapStateToProps = (state, ownProps) => {
   const { project, survey, questionnaires, respondents } = state
-  const { page, sortBy, sortAsc, order, filter, items } = respondents
+  const { page, sortBy, sortAsc, order, filter, items, fields } = respondents
   const { number: pageNumber, size: pageSize, totalCount } = page
   const { projectId, surveyId } = ownProps.params
   const startIndex = (pageNumber - 1) * pageSize + 1
@@ -698,7 +717,8 @@ const mapStateToProps = (state, ownProps) => {
     totalCount,
     sortBy,
     sortAsc,
-    filter
+    filter,
+    fields: fields || []
   }
 }
 
