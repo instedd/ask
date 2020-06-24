@@ -46,7 +46,20 @@ defmodule Ask.RespondentController do
       |> effective_stats
     end)
 
-    render(conn, "index.json", respondents: respondents, respondents_count: respondents_count)
+    render(conn, "index.json",
+      respondents: respondents,
+      respondents_count: respondents_count,
+      index_fields:
+        ["phoneNumber", "disposition", "updated_at"] ++ variable_index_fields(respondents)
+    )
+  end
+
+  defp variable_index_fields(respondents) do
+    all_duplicated_fields =
+      Enum.flat_map(respondents, fn %{responses: responses} ->
+        Enum.map(responses, fn %{field_name: field_name} -> field_name end)
+      end)
+    Enum.uniq(all_duplicated_fields)
   end
 
   defp effective_stats(respondent) do

@@ -1,8 +1,51 @@
 defmodule Ask.RespondentView do
   use Ask.Web, :view
 
-  def render("index.json", %{respondents: respondents, respondents_count: respondents_count}) do
-    %{data: %{respondents: render_many(respondents, Ask.RespondentView, "respondent.json")}, meta: %{count: respondents_count}}
+  def render(
+        "index.json",
+        %{
+          index_fields: index_fields
+        } = args
+      ) do
+    render_index(args)
+    |> render_index_with_fields(index_fields)
+  end
+
+  def render("index.json", args), do: render_index(args)
+
+  def render("index_field.json", %{respondent: "phoneNumber"}) do
+    %{
+      displayText: Ask.Gettext.gettext("Respondent ID"),
+      key: "phoneNumber",
+      sortable: true,
+      type: "text"
+    }
+  end
+
+  def render("index_field.json", %{respondent: "disposition"}) do
+    %{
+      displayText: Ask.Gettext.gettext("Disposition"),
+      key: "disposition",
+      sortable: false,
+      type: "text"
+    }
+  end
+
+  def render("index_field.json", %{respondent: "updated_at"}) do
+    %{
+      displayText: Ask.Gettext.gettext("Date"),
+      key: "date",
+      sortable: true,
+      type: "date"
+    }
+  end
+
+  def render("index_field.json", %{respondent: key}) do
+    %{
+      displayText: key,
+      key: key,
+      sortable: false
+    }
   end
 
   def render("show.json", %{respondent: respondent}) do
@@ -135,5 +178,27 @@ defmodule Ask.RespondentView do
       date: Date.to_iso8601(date),
       percent: percentage
     }
+  end
+
+  defp render_index(%{
+         respondents: respondents,
+         respondents_count: respondents_count
+       }) do
+    %{
+      data: %{respondents: render_many(respondents, Ask.RespondentView, "respondent.json")},
+      meta: %{
+        count: respondents_count
+      }
+    }
+  end
+
+  defp render_index_with_fields(render, fields) do
+    meta_with_fields =
+      Map.put(
+        render[:meta],
+        :fields,
+        render_many(fields, Ask.RespondentView, "index_field.json")
+      )
+    Map.put(render, :meta, meta_with_fields)
   end
 end
