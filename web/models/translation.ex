@@ -4,6 +4,7 @@ defmodule Ask.Translation do
   alias Ask.{Repo, Translation}
 
   schema "translations" do
+    # possible :mode values: 'sms', 'ivr', 'mobileweb', 'all'
     field :mode, :string
     field :scope, :string
     field :source_lang, :string

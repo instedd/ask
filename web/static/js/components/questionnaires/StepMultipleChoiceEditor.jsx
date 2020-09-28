@@ -59,7 +59,23 @@ class StepMultipleChoiceEditor extends Component<Props> {
     }
   }
 
-  smsAutocompleteGetData(value, callback, choice, index) {
+  responseAutocompleteGetData(value, callback, choice) {
+    const questionnaire = this.props.questionnaire
+    const { defaultLanguage, activeLanguage, projectId } = questionnaire
+    if (activeLanguage == defaultLanguage) {
+      api.autocompletePrimaryLanguage(projectId, 'all', 'choice_value', defaultLanguage, value)
+      .then(response => {
+        const items = response.map(r => ({id: r.text, text: r.text, translations: r.translations}))
+        callback(value, items)
+      })
+    } else {
+      // TODO: Autocomplete isn't working when other language is selected.
+      // See: https://github.com/instedd/surveda/issues/1095
+      // Fix this issue before trying this implementation
+    }
+  }
+
+  smsAutocompleteGetData(value, callback, choice) {
     const { questionnaire } = this.props
 
     const defaultLanguage = questionnaire.defaultLanguage
@@ -173,7 +189,8 @@ class StepMultipleChoiceEditor extends Component<Props> {
                     mobileweb={mobileweb}
                     errorPath={choicesErrorPath}
                     errorsByPath={errorsByPath}
-                    smsAutocompleteGetData={(value, callback) => this.smsAutocompleteGetData(value, callback, choice, index)}
+                    smsAutocompleteGetData={(value, callback) => this.smsAutocompleteGetData(value, callback, choice)}
+                    responseAutocompleteGetData={(item, callback) => this.responseAutocompleteGetData(item, callback, choice)}
                     smsAutocompleteOnSelect={item => this.smsAutocompleteOnSelect(item, choice, index)}
                     isNew={isNew}
                     />

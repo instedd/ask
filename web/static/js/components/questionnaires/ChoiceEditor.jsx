@@ -26,7 +26,8 @@ type Props = {
   t: Function,
   smsAutocompleteGetData: Function,
   smsAutocompleteOnSelect: Function,
-  isNew: boolean
+  isNew: boolean,
+  responseAutocompleteGetData: Function
 };
 
 type Focus = null | 'response' | 'sms' | 'ivr' | 'mobileweb';
@@ -206,7 +207,7 @@ class ChoiceEditor extends Component<Props, State> {
   }
 
   render() {
-    const { onDelete, stepsBefore, stepsAfter, readOnly, choiceIndex, sms, ivr, mobileweb, errorPath, errorsByPath, isNew, lang, smsAutocompleteGetData, smsAutocompleteOnSelect, t } = this.props
+    const { onDelete, stepsBefore, stepsAfter, readOnly, choiceIndex, sms, ivr, mobileweb, errorPath, errorsByPath, isNew, lang, smsAutocompleteGetData, responseAutocompleteGetData, smsAutocompleteOnSelect, t } = this.props
 
     const isRefusal = choiceIndex == 'refusal'
 
@@ -230,6 +231,7 @@ class ChoiceEditor extends Component<Props, State> {
           ? <td onMouseDown={e => this.setDoNotClose('response')}>
             <input
               type='text'
+              ref='responseInput'
               placeholder={t('Response')}
               value={this.state.response}
               autoFocus={this.state.focus == 'response'}
@@ -239,7 +241,16 @@ class ChoiceEditor extends Component<Props, State> {
               draggable
               onDragStart={e => { e.stopPropagation(); e.preventDefault(); return false }}
               />
+            <Autocomplete
+              getInput={() => this.refs.responseInput}
+              getData={(value, callback) => responseAutocompleteGetData(value, callback)}
+              onSelect={(item) => {
+                // TODO: Honor the user selection
+              }}
+              ref='autocomplete'
+            />
           </td>
+
           : null }
           { sms
           ? <td onMouseDown={e => this.setDoNotClose('sms')}>
