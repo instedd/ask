@@ -231,6 +231,26 @@ defmodule Ask.Translation do
   end
 
   defp collect_choice_translations(translations, lang, choice) do
+    translations = collect_choice_sms_translations(translations, lang, choice)
+    collect_choice_value_translations(translations, lang, choice)
+  end
+
+  # The response_value is the same for every lang and mode
+  # It's included in translations for the autocomplete feature
+  defp collect_choice_value_translations(translations, lang, choice) do
+    case choice do
+      %{"value" => choice_value} ->
+        if choice_value |> present? do
+          [{"all", "choice_value", lang, choice_value, lang, choice_value} | translations]
+        else
+          translations
+        end
+      _ ->
+        translations
+    end
+  end
+
+  defp collect_choice_sms_translations(translations, lang, choice) do
     case choice do
       %{"responses" => %{"sms" => responses = %{^lang => entry}}} ->
         text = entry |> Enum.join(", ")
