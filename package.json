@@ -5,7 +5,9 @@
     "deploy": "webpack -p --devtool source-map",
     "watch": "webpack --watch --progress --color",
     "test": "mocha --opts test/js/mocha.opts",
-    "eslint": "eslint --ext .jsx,.js web/static/js/ test/js"
+    "eslint": "eslint --ext .jsx,.js web/static/js/ test/js",
+    "cypress:run": "cypress run --headless",
+    "cypress:open": "cypress open"
   },
   "dependencies": {
     "@instedd/surveda-d3-components": "1.1.1",
@@ -53,6 +55,8 @@
     "copy-webpack-plugin": "^4.0.1",
     "css-loader": "^0.28.4",
     "csv-string": "^2.3.0",
+    "cypress": "^6.0.0",
+    "cypress-file-upload": "^4.1.1",
     "dateformat": "^1.0.12",
     "enzyme": "^2.6.0",
     "eslint": "^3.19.0",
