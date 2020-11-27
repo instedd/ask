@@ -2,6 +2,7 @@ import React, { Component, PropTypes } from 'react'
 import { connect } from 'react-redux'
 import { withRouter } from 'react-router'
 import { ScrollToTopButton, CollectionItem, ScrollToLink, Tooltip, PositionFixer } from '../ui'
+import SurveyWizardPanelSurveyStep from './SurveyWizardPanelSurveyStep'
 import SurveyWizardQuestionnaireStep from './SurveyWizardQuestionnaireStep'
 import SurveyWizardRespondentsStep from './SurveyWizardRespondentsStep'
 import SurveyWizardModeStep from './SurveyWizardModeStep'
@@ -75,6 +76,7 @@ class SurveyForm extends Component {
       })
 
     const modeStepCompleted = survey.mode != null && survey.mode.length > 0 && this.questionnairesMatchModes(survey.mode, survey.questionnaireIds, questionnaires)
+    const isPanelSurveyStepCompleted = questionnaireStepCompleted
     const cutoffStepCompleted = cutOffConfigValid && questionnaireStepCompleted
     const validRetryConfiguration = !errors || (!errors.smsRetryConfiguration && !errors.ivrRetryConfiguration && !errors.fallbackDelay)
     const scheduleStepCompleted =
@@ -90,7 +92,7 @@ class SurveyForm extends Component {
       ) && validRetryConfiguration
     let comparisonsStepCompleted = false
 
-    const mandatorySteps = [questionnaireStepCompleted, respondentsStepCompleted, modeStepCompleted, scheduleStepCompleted, cutoffStepCompleted]
+    const mandatorySteps = [isPanelSurveyStepCompleted, questionnaireStepCompleted, modeStepCompleted, respondentsStepCompleted, scheduleStepCompleted, cutoffStepCompleted]
     if (survey.comparisons.length > 0) {
       comparisonsStepCompleted = sumBy(survey.comparisons, c => c.ratio) == 100
       mandatorySteps.push(comparisonsStepCompleted)
@@ -133,6 +135,7 @@ class SurveyForm extends Component {
                 </div>
               </li>
               {launchComponent}
+              <CollectionItem path='#panel_survey' icon='replay' text={t('Repeat survey')} completed={isPanelSurveyStepCompleted} />
               <CollectionItem path='#questionnaire' icon='assignment' text={t('Select a questionnaire')} completed={!!questionnaireStepCompleted} />
               <CollectionItem path='#channels' icon='settings_input_antenna' text={t('Select mode')} completed={!!modeStepCompleted} />
               <CollectionItem path='#respondents' icon='group' text={t('Upload your respondents list')} completed={!!respondentsStepCompleted} />
@@ -146,6 +149,10 @@ class SurveyForm extends Component {
           </PositionFixer>
         </div>
         <div className='col s12 m7 offset-m1 wizard-content'>
+          <div id='panel_survey' className='row scrollspy'>
+            <SurveyWizardPanelSurveyStep survey={survey} readOnly={readOnly || surveyStarted} />
+            <ScrollToLink target='#questionnaire'>{t('NEXT: Select Questionnaire')}</ScrollToLink>
+          </div>
           <div id='questionnaire' className='row scrollspy'>
             <SurveyWizardQuestionnaireStep projectId={projectId} survey={survey} questionnaires={questionnaires} readOnly={readOnly || surveyStarted} />
             <ScrollToLink target='#channels'>{t('NEXT: Select Mode')}</ScrollToLink>

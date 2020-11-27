@@ -19,6 +19,7 @@ const k = (...args: any) => args
 export const dataReducer = (state: Survey, action: any): Survey => {
   switch (action.type) {
     case actions.CHANGE_NAME: return changeName(state, action)
+    case actions.CHANGE_IS_PANEL_SURVEY: return changeIsPanelSurvey(state, action)
     case actions.CHANGE_DESCRIPTION: return changeDescription(state, action)
     case actions.CHANGE_CUTOFF: return changeCutoff(state, action)
     case actions.TOGGLE_COUNT_PARTIAL_RESULTS: return toggleCountPartialResults(state, action)
@@ -143,6 +144,13 @@ const changeName = (state, action) => {
   return {
     ...state,
     name: action.newName
+  }
+}
+
+const changeIsPanelSurvey = (state, action) => {
+  return {
+    ...state,
+    isPanelSurvey: action.isPanelSurvey
   }
 }
 

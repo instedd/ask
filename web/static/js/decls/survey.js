@@ -34,7 +34,8 @@ export type Survey = {
   },
   links: Link[],
   comparisons: Comparison[],
-  nextScheduleTime: ?string
+  nextScheduleTime: ?string,
+  isPanelSurvey: boolean
 };
 
 export type Link = {

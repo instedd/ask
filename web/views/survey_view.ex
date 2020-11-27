@@ -84,7 +84,9 @@ defmodule Ask.SurveyView do
       comparisons: survey.comparisons || [],
       next_schedule_time: next_schedule_time(survey),
       down_channels: survey.down_channels,
-      folder_id: survey.folder_id
+      folder_id: survey.folder_id,
+      # Preserve the UI from handling the panel survey implementation details
+      is_panel_survey: Survey.is_panel_survey(survey)
     }
 
     if Ask.Survey.launched?(survey) || survey.simulation do

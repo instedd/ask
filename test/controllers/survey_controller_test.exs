@@ -179,7 +179,8 @@ defmodule Ask.SurveyControllerTest do
         "comparisons" => [],
         "next_schedule_time" => nil,
         "down_channels" => [],
-        "folder_id" => nil
+        "folder_id" => nil,
+        "is_panel_survey" => false
       }
     end
 
@@ -273,7 +274,8 @@ defmodule Ask.SurveyControllerTest do
         "comparisons" => [],
         "next_schedule_time" => nil,
         "down_channels" => [],
-        "folder_id" => nil
+        "folder_id" => nil,
+        "is_panel_survey" => false
       }
     end
 
@@ -341,7 +343,8 @@ defmodule Ask.SurveyControllerTest do
         "comparisons" => [],
         "next_schedule_time" => nil,
         "down_channels" => [],
-        "folder_id" => nil
+        "folder_id" => nil,
+        "is_panel_survey" => false
       }
     end
 
@@ -401,7 +404,8 @@ defmodule Ask.SurveyControllerTest do
         "comparisons" => [],
         "next_schedule_time" => nil,
         "down_channels" => [],
-        "folder_id" => nil
+        "folder_id" => nil,
+        "is_panel_survey" => false
       }
     end
 
@@ -2501,6 +2505,59 @@ defmodule Ask.SurveyControllerTest do
       log = ActivityLog |> Repo.one!()
 
       assert_survey_log(%{log: log, user: user, project: project, survey: survey, action: "unlock", remote_ip: "192.168.0.128", metadata: %{"survey_name" => survey.name}})
+    end
+  end
+
+  describe "panel surveys" do
+    setup %{user: user} do
+      project = create_project_for_user(user)
+      %{project: project}
+    end
+
+    test "shows a panel survey", %{conn: conn, project: project} do
+      survey = insert(:survey, project: project)
+      survey = Survey.changeset(survey, %{panel_survey_of: survey.id}) |> Repo.update!()
+
+      conn = get(conn, project_survey_path(conn, :show, project, survey))
+
+      assert json_response(conn, 200)["data"]["is_panel_survey"] == true
+    end
+
+    test "shows a regular survey", %{conn: conn, project: project} do
+      survey = insert(:survey, project: project)
+
+      conn = get(conn, project_survey_path(conn, :show, project, survey))
+
+      assert json_response(conn, 200)["data"]["is_panel_survey"] == false
+    end
+
+    test "sets up a panel survey", %{conn: conn, project: project} do
+      survey = insert(:survey, project: project)
+
+      conn =
+        put(conn, project_survey_path(conn, :update, project, survey),
+          survey: %{is_panel_survey: true}
+        )
+
+      survey = Repo.get!(Survey, survey.id)
+      assert json_response(conn, 200)["data"]["is_panel_survey"] == true
+      assert survey.panel_survey_of == survey.id
+      assert survey.latest_panel_survey == true
+    end
+
+    test "sets up a regular survey", %{conn: conn, project: project} do
+      survey = insert(:survey, project: project)
+      survey = Survey.changeset(survey, %{panel_survey_of: survey.id}) |> Repo.update!()
+
+      conn =
+        put(conn, project_survey_path(conn, :update, project, survey),
+          survey: %{is_panel_survey: false}
+        )
+
+      survey = Repo.get!(Survey, survey.id)
+      assert json_response(conn, 200)["data"]["is_panel_survey"] == false
+      assert survey.panel_survey_of == nil
+      assert survey.latest_panel_survey == false
     end
   end
 

@@ -41,9 +41,9 @@ defmodule Ask.SurveyController do
     render(conn, "index.json", surveys: surveys)
   end
 
-  def create(conn, params = %{"folder_id" => folder_id}), do: create(conn, params, folder_id)
+  def create(conn, params = %{"project_id" => project_id}) do
+    folder_id = Map.get(params, "folder_id")
 
-  def create(conn, params = %{"project_id" => project_id}, folder_id  \\ nil) do
     project = conn
     |> load_project_for_change(project_id)
     |> validate_project_not_archived(conn)
@@ -125,6 +125,16 @@ defmodule Ask.SurveyController do
     survey = project
       |> assoc(:surveys)
       |> Repo.get!(id)
+
+    # Preserve the UI from handling the panel survey implementation details
+    {is_panel_survey_param, survey_params} = Map.pop(survey_params, "is_panel_survey")
+
+    survey_params =
+      if is_panel_survey_param do
+        Map.merge(survey_params, %{"panel_survey_of" => id, "latest_panel_survey" => true})
+      else
+        Map.merge(survey_params, %{"panel_survey_of" => nil, "latest_panel_survey" => false})
+      end
 
     if survey |> Survey.editable? do
       changeset = survey
