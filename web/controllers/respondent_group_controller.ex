@@ -1,6 +1,6 @@
 defmodule Ask.RespondentGroupController do
   use Ask.Web, :api_controller
-  alias Ask.{Project, Survey, Respondent, RespondentGroup, Logger, RespondentGroupChannel, Stats}
+  alias Ask.{Project, Survey, Respondent, RespondentGroup, Logger, RespondentGroupChannel}
 
   plug :find_and_check_survey_state when action in [:create, :update, :delete, :replace]
 
@@ -79,9 +79,7 @@ defmodule Ask.RespondentGroupController do
           rows = rows
           |> remove_duplicates_with_respect_to(group)
 
-          rows
-          |> to_entries(project, survey, group, local_time)
-          |> insert_all
+          Ask.Runtime.RespondentGroup.insert_all_respondents(rows, project, survey, group, local_time)
 
           new_count = group.respondents_count + length(rows)
           new_sample = merge_sample(group.sample, rows)
@@ -116,9 +114,7 @@ defmodule Ask.RespondentGroupController do
         where: r.respondent_group_id == ^group.id)
 
       # Then create respondents from the CSV file
-      rows
-      |> to_entries(project, survey, group, local_time)
-      |> insert_all
+      Ask.Runtime.RespondentGroup.insert_all_respondents(rows, project, survey, group, local_time)
 
       sample = rows |> Enum.take(5)
       respondents_count = rows |> length
@@ -173,9 +169,7 @@ defmodule Ask.RespondentGroupController do
     |> Repo.insert!
     |> Repo.preload(:respondent_group_channels)
 
-    rows
-    |> to_entries(project, survey, group, local_time)
-    |> insert_all
+    Ask.Runtime.RespondentGroup.insert_all_respondents(rows, project, survey, group, local_time)
 
     survey
     |> Repo.preload([:questionnaires])
@@ -268,23 +262,6 @@ defmodule Ask.RespondentGroupController do
     else
       old_sample ++ Enum.take(new_rows, 5 - length(old_sample))
     end
-  end
-
-  defp to_entries(rows, project, survey, group, local_time) do
-    rows
-    |> Stream.map(fn row ->
-      canonical_number = Respondent.canonicalize_phone_number(row)
-      %{phone_number: row, sanitized_phone_number: canonical_number, canonical_phone_number: canonical_number, survey_id: survey.id, respondent_group_id: group.id, inserted_at: local_time, updated_at: local_time, hashed_number: Respondent.hash_phone_number(row, project.salt), disposition: "registered", stats: %Stats{}, user_stopped: false}
-    end)
-  end
-
-  defp insert_all(entries) do
-    entries
-    |> Stream.chunk(1_000, 1_000, [])
-    |> Stream.each(fn(chunked_entries)  ->
-        Repo.insert_all(Respondent, chunked_entries)
-      end)
-    |> Stream.run
   end
 
   defp remove_duplicates_with_respect_to(phone_numbers, group) do
