@@ -118,6 +118,22 @@ defmodule Ask.SurveyController do
     render(conn, "retries_histograms.json", %{histograms: retries_histograms})
   end
 
+  defp is_panel_survey_changed?(_survey, _is_panel_survey_param = nil), do: false
+
+  # only a regular survey switches to a panel survey
+  defp is_panel_survey_changed?(survey, _is_panel_survey_param = true), do: not Survey.panel_survey?(survey)
+
+  # only the first occurrence of a panel survey with no subsequent ocurrences switches to a regular survey
+  defp is_panel_survey_changed?(_survey = %{id: id, panel_survey_of: panel_survey_of, latest_panel_survey: latest_panel_survey}, _is_panel_survey_param = false), do: id == panel_survey_of and latest_panel_survey
+
+  defp merge_panel_survey_params(survey_id, survey_params, is_panel_survey_param) do
+    if is_panel_survey_param do
+      Map.merge(survey_params, %{"panel_survey_of" => survey_id, "latest_panel_survey" => true})
+    else
+      Map.merge(survey_params, %{"panel_survey_of" => nil, "latest_panel_survey" => false})
+    end
+  end
+
   def update(conn, %{"project_id" => project_id, "id" => id, "survey" => survey_params}) do
     project = conn
       |> load_project_for_change(project_id)
@@ -128,12 +144,11 @@ defmodule Ask.SurveyController do
 
     # Preserve the UI from handling the panel survey implementation details
     {is_panel_survey_param, survey_params} = Map.pop(survey_params, "is_panel_survey")
-
     survey_params =
-      if is_panel_survey_param do
-        Map.merge(survey_params, %{"panel_survey_of" => id, "latest_panel_survey" => true})
+      if is_panel_survey_changed?(survey, is_panel_survey_param) do
+        merge_panel_survey_params(id, survey_params, is_panel_survey_param)
       else
-        Map.merge(survey_params, %{"panel_survey_of" => nil, "latest_panel_survey" => false})
+        survey_params
       end
 
     if survey |> Survey.editable? do

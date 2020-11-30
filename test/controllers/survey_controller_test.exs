@@ -2531,7 +2531,7 @@ defmodule Ask.SurveyControllerTest do
       assert json_response(conn, 200)["data"]["is_panel_survey"] == false
     end
 
-    test "sets up a panel survey", %{conn: conn, project: project} do
+    test "switches to a panel survey", %{conn: conn, project: project} do
       survey = insert(:survey, project: project)
 
       conn =
@@ -2545,9 +2545,41 @@ defmodule Ask.SurveyControllerTest do
       assert survey.latest_panel_survey == true
     end
 
-    test "sets up a regular survey", %{conn: conn, project: project} do
+    test "doesn't switches to a panel survey when it's already a panel_survey", %{
+      conn: conn,
+      project: project
+    } do
+      panel_survey_1st = insert(:survey, project: project)
+
+      panel_survey_1st =
+        Survey.changeset(panel_survey_1st, %{panel_survey_of: panel_survey_1st.id})
+        |> Repo.update!()
+
+      panel_survey_2nd =
+        insert(:survey,
+          project: project,
+          panel_survey_of: panel_survey_1st.id,
+          latest_panel_survey: true
+        )
+
+      conn =
+        put(conn, project_survey_path(conn, :update, project, panel_survey_2nd),
+          survey: %{is_panel_survey: true}
+        )
+
+      panel_survey_2nd = Repo.get!(Survey, panel_survey_2nd.id)
+      assert json_response(conn, 200)["data"]["is_panel_survey"] == true
+      # If it'd had switched, panel_survey_of would have been assigned to itself
+      assert panel_survey_2nd.panel_survey_of == panel_survey_1st.id
+      assert panel_survey_2nd.latest_panel_survey == true
+    end
+
+    test "switches to a regular survey", %{conn: conn, project: project} do
       survey = insert(:survey, project: project)
-      survey = Survey.changeset(survey, %{panel_survey_of: survey.id}) |> Repo.update!()
+
+      survey =
+        Survey.changeset(survey, %{panel_survey_of: survey.id, latest_panel_survey: true})
+        |> Repo.update!()
 
       conn =
         put(conn, project_survey_path(conn, :update, project, survey),
@@ -2558,6 +2590,61 @@ defmodule Ask.SurveyControllerTest do
       assert json_response(conn, 200)["data"]["is_panel_survey"] == false
       assert survey.panel_survey_of == nil
       assert survey.latest_panel_survey == false
+    end
+
+    test "doesn't switch to a regular survey when it isn't the first panel survey ocurrence", %{
+      conn: conn,
+      project: project
+    } do
+      panel_survey_1st = insert(:survey, project: project)
+
+      panel_survey_1st =
+        Survey.changeset(panel_survey_1st, %{panel_survey_of: panel_survey_1st.id})
+        |> Repo.update!()
+
+      panel_survey_2nd =
+        insert(:survey,
+          project: project,
+          panel_survey_of: panel_survey_1st.id,
+          latest_panel_survey: true
+        )
+
+      conn =
+        put(conn, project_survey_path(conn, :update, project, panel_survey_2nd),
+          survey: %{is_panel_survey: false}
+        )
+
+      panel_survey_2nd = Repo.get!(Survey, panel_survey_2nd.id)
+      assert json_response(conn, 200)["data"]["is_panel_survey"] == true
+      assert panel_survey_2nd.panel_survey_of == panel_survey_1st.id
+      assert panel_survey_2nd.latest_panel_survey == true
+    end
+
+    test "doesn't switch to a regular survey when it isn't the last panel survey occurrence", %{
+      conn: conn,
+      project: project
+    } do
+      panel_survey_1st = insert(:survey, project: project)
+
+      panel_survey_1st =
+        Survey.changeset(panel_survey_1st, %{
+          # a defaults to false
+          panel_survey_of: panel_survey_1st.id
+        })
+        |> Repo.update!()
+
+      # There's no need of inserting an actual 2nd occurrence
+      # With latest_panel_survey == false, it doesn't switch
+
+      conn =
+        put(conn, project_survey_path(conn, :update, project, panel_survey_1st),
+          survey: %{is_panel_survey: false}
+        )
+
+      panel_survey_1st = Repo.get!(Survey, panel_survey_1st.id)
+      assert json_response(conn, 200)["data"]["is_panel_survey"] == true
+      assert panel_survey_1st.panel_survey_of == panel_survey_1st.id
+      assert panel_survey_1st.latest_panel_survey == false
     end
   end
 

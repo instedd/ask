@@ -86,7 +86,7 @@ defmodule Ask.SurveyView do
       down_channels: survey.down_channels,
       folder_id: survey.folder_id,
       # Preserve the UI from handling the panel survey implementation details
-      is_panel_survey: Survey.is_panel_survey(survey)
+      is_panel_survey: Survey.panel_survey?(survey)
     }
 
     if Ask.Survey.launched?(survey) || survey.simulation do
