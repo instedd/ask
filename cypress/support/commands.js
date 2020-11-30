@@ -24,8 +24,8 @@
 // -- This will overwrite an existing command --
 // Cypress.Commands.overwrite("visit", (originalFn, url, options) => { ... })
 
-Cypress.Commands.add('log_into_instedd', (email, pwd) => {
-  cy.visit('https://login-stg.instedd.org/')
+Cypress.Commands.add('log_into_instedd', (email, pwd, guisso_host) => {
+  cy.visit(guisso_host)
 
   cy.get('.fieldset')
     .find('input[name="user[email]"]')

@@ -2,8 +2,8 @@
 
 describe('survey', () => {
 	it('starts a survey', () => {
-		cy.log_into_instedd('mmuller@manas.com.ar', '123456789')
-		cy.visit('https://surveda-stg.instedd.org/projects/322')
+		cy.log_into_instedd(Cypress.env('email'), Cypress.env('password'), Cypress.env('guisso_host'))
+		cy.visit(Cypress.env('host')+Cypress.env('project_id'))
 		cy.visit('https://surveda-stg.instedd.org/projects/322/surveys/3055')
 		
 

@@ -1,0 +1,9 @@
+{
+  "env": {
+    "host": "https://surveda-stg.instedd.org",
+    "guisso_host": "https://login-stg.instedd.org",
+    "email": "foo@bar.com",
+    "password":"foobar",
+    "project_id":"/projects/1"
+  }
+}
