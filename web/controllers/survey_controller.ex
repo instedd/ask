@@ -384,10 +384,12 @@ defmodule Ask.SurveyController do
       case prepare_channels(conn, channels) do
         :ok ->
           new_ocurrence = PanelSurvey.new_ocurrence(survey)
-          update_changeset = Survey.changeset(survey, %{"latest_panel_survey": false})
+          questionnaire_ids = Enum.map(survey.questionnaires, fn q -> q.id end)
           insert_changeset = project
           |> build_assoc(:surveys)
           |> Survey.changeset(new_ocurrence)
+          |> update_questionnaires(%{"questionnaire_ids" => questionnaire_ids})
+          update_changeset = Survey.changeset(survey, %{"latest_panel_survey": false})
 
           multi = Multi.new
           |> Multi.update(:update, update_changeset)
