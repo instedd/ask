@@ -367,8 +367,8 @@ defmodule Ask.SurveyController do
     |> Repo.preload([:questionnaires])
     |> Repo.preload(respondent_groups: :channels)
 
-    if not Survey.succeeded?(survey) do
-      Logger.warn "Error when repeating survey #{id}. Survey didn't succeeded"
+    if not Survey.succeeded?(survey) and Survey.panel_survey?(survey) do
+      Logger.warn "Survey #{id} can't be repeated because it's not a panel survey or it didn's succeeded"
       conn
         |> put_status(:unprocessable_entity)
         |> render("show.json", survey: survey |> Repo.preload(:questionnaires) |> Survey.with_links(user_level(survey.project_id, current_user(conn).id)))
