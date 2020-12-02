@@ -2,7 +2,7 @@ defmodule Ask.SurveyController do
   use Ask.Web, :api_controller
 
   alias Ask.{Project, Folder, Survey, Questionnaire, Logger, RespondentGroup, Respondent, Channel, ShortLink, ActivityLog, RetriesHistogram}
-  alias Ask.Runtime.Session
+  alias Ask.Runtime.{Session, PanelSurvey}
   alias Ecto.Multi
   alias Ask.SurveyCanceller
 
@@ -18,6 +18,7 @@ defmodule Ask.SurveyController do
     dynamic =
       if params["state"] do
         if params["state"] == "completed" do
+          # Same as Survey.succeeded?(s)
           dynamic([s], s.state == "terminated" and s.exit_code == 0 and ^dynamic)
         else
           dynamic([s], s.state == ^params["state"] and ^dynamic)
@@ -352,6 +353,67 @@ defmodule Ask.SurveyController do
 
         {:error, reason} ->
           Logger.warn "Error when preparing channels for launching survey #{id} (#{reason})"
+          conn
+          |> put_status(:unprocessable_entity)
+          |> render("show.json", survey: survey |> Repo.preload(:questionnaires) |> Survey.with_links(user_level(survey.project_id, current_user(conn).id)))
+      end
+    end
+  end
+
+  def repeat(conn, %{"survey_id" => id}) do
+    survey = Repo.get!(Survey, id)
+    |> Repo.preload([:project])
+    |> Repo.preload([:quota_buckets])
+    |> Repo.preload([:questionnaires])
+    |> Repo.preload(respondent_groups: :channels)
+
+    if not Survey.succeeded?(survey) do
+      Logger.warn "Error when repeating survey #{id}. Survey didn't succeeded"
+      conn
+        |> put_status(:unprocessable_entity)
+        |> render("show.json", survey: survey |> Repo.preload(:questionnaires) |> Survey.with_links(user_level(survey.project_id, current_user(conn).id)))
+    else
+      project = conn
+      |> load_project_for_change(survey.project_id)
+
+      channels = survey.respondent_groups
+      |> Enum.flat_map(&(&1.channels))
+      |> Enum.uniq
+
+
+      case prepare_channels(conn, channels) do
+        :ok ->
+          new_ocurrence = PanelSurvey.new_ocurrence(survey)
+          update_changeset = Survey.changeset(survey, %{"latest_panel_survey": false})
+          insert_changeset = project
+          |> build_assoc(:surveys)
+          |> Survey.changeset(new_ocurrence)
+
+          multi = Multi.new
+          |> Multi.update(:update, update_changeset)
+          |> Multi.insert(:insert, insert_changeset)
+          # |> Multi.insert(:log, ActivityLog.start(project, conn, survey))
+          |> Repo.transaction
+
+          case multi do
+            {:ok, %{insert: survey}} ->
+              project |> Project.touch!
+              survey = survey
+              |> Repo.preload([:project])
+              |> Repo.preload([:quota_buckets])
+              |> Repo.preload([:questionnaires])
+              |> Repo.preload(respondent_groups: :channels)
+              |> Survey.with_links(user_level(survey.project_id, current_user(conn).id))
+              render(conn, "show.json", survey:  survey)
+            {:error, _, changeset, _} ->
+              Logger.warn "Error when repeating survey: #{inspect changeset}"
+              conn
+              |> put_status(:unprocessable_entity)
+              |> render(Ask.ChangesetView, "error.json", changeset: changeset)
+          end
+
+        {:error, reason} ->
+          Logger.warn "Error when preparing channels for repeating survey #{id} (#{reason})"
           conn
           |> put_status(:unprocessable_entity)
           |> render("show.json", survey: survey |> Repo.preload(:questionnaires) |> Survey.with_links(user_level(survey.project_id, current_user(conn).id)))

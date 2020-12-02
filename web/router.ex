@@ -84,6 +84,7 @@ defmodule Ask.Router do
           post "/launch", SurveyController, :launch
           post "/stop", SurveyController, :stop
           post "/config", SurveyController, :config
+          post "/repeat/", SurveyController, :repeat
           put "/update_locked_status", SurveyController, :update_locked_status, as: :update_locked_status
           get "/config", SurveyController, :config
           get "/stats", SurveyController, :stats

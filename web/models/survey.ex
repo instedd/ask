@@ -589,6 +589,8 @@ defmodule Ask.Survey do
     Enum.any?(partial_relevant_configs, fn config -> Questionnaire.partial_relevant_enabled?(config) end)
   end
 
+  def succeeded?(survey), do: survey.state == "terminated" and survey.exit_code == 0
+
   defp partial_relevant_configs(survey, true = _persist),
     do:
       from(sq in SurveyQuestionnaire,
