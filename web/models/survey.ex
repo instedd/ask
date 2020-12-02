@@ -554,7 +554,7 @@ defmodule Ask.Survey do
 
   def successful_respondents(quota_completed, _, _), do: quota_completed |> Decimal.to_integer
 
-  def is_panel_survey(%{panel_survey_of: panel_survey_of}), do: !!panel_survey_of
+  def panel_survey?(%{panel_survey_of: panel_survey_of}), do: !!panel_survey_of
 
   defp exhausted_respondents(respondents_by_disposition, count_partial_results) do
     disposition_filter = Respondent.metrics_final_dispositions(count_partial_results)
