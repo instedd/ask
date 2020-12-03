@@ -22,16 +22,19 @@ defmodule Ask.RespondentGroupController do
     project = conn.assigns.loaded_project
     survey = conn.assigns.loaded_survey
 
-    process_file(conn, survey, file, fn rows ->
-      create_respondent_group(conn, survey, file.filename, rows, project)
+    process_file(conn, survey, file, fn file_phone_numbers ->
+      respondent_group = Ask.Runtime.RespondentGroup.create(file.filename, file_phone_numbers, survey.id, project.salt)
+      project |> Project.touch!
+      conn
+      |> put_status(:created)
+      |> render("show.json", respondent_group: respondent_group)
     end)
   end
 
   def update(conn, %{"id" => id, "respondent_group" => respondent_group_params}) do
-    project = conn.assigns.loaded_project
     survey = conn.assigns.loaded_survey
 
-    group = survey
+    respondent_group = survey
     |> assoc(:respondent_groups)
     |> Repo.get!(id)
     |> RespondentGroup.changeset(respondent_group_params)
@@ -39,7 +42,7 @@ defmodule Ask.RespondentGroupController do
 
     update_channels(id, respondent_group_params)
 
-    group = group
+    respondent_group = respondent_group
     |> Repo.preload(:respondent_group_channels)
 
     survey
@@ -50,10 +53,8 @@ defmodule Ask.RespondentGroupController do
     |> Survey.update_state
     |> Repo.update!
 
-    project |> Project.touch!
-
     conn
-    |> render("show.json", respondent_group: group)
+    |> render("show.json", respondent_group: respondent_group)
   end
 
   def add(conn, %{"project_id" => project_id, "survey_id" => survey_id, "respondent_group_id" => id, "file" => file}) do
@@ -64,7 +65,7 @@ defmodule Ask.RespondentGroupController do
     |> assoc(:surveys)
     |> Repo.get!(survey_id)
 
-    group = survey
+    respondent_group = survey
     |> assoc(:respondent_groups)
     |> Repo.get!(id)
     |> Repo.preload(:respondent_group_channels)
@@ -73,28 +74,26 @@ defmodule Ask.RespondentGroupController do
 
     case survey.locked do
       false ->
-        process_file(conn, survey, file, fn rows ->
-          {:ok, local_time } = Ecto.DateTime.cast :calendar.local_time()
+        process_file(conn, survey, file, fn file_phone_numbers ->
+          file_phone_numbers = file_phone_numbers
+          |> remove_duplicates_with_respect_to(respondent_group)
 
-          rows = rows
-          |> remove_duplicates_with_respect_to(group)
+          Ask.Runtime.RespondentGroup.insert_respondents(file_phone_numbers, respondent_group.id, survey.id, project.salt)
 
-          Ask.Runtime.RespondentGroup.insert_all_respondents(rows, project, survey, group, local_time)
+          new_count = respondent_group.respondents_count + length(file_phone_numbers)
+          new_sample = merge_sample(respondent_group.sample, file_phone_numbers)
 
-          new_count = group.respondents_count + length(rows)
-          new_sample = merge_sample(group.sample, rows)
-
-          group = group
+          respondent_group = respondent_group
           |> RespondentGroup.changeset(%{"respondents_count" => new_count, "sample" => new_sample})
           |> Repo.update!
 
           conn
-          |> render("show.json", respondent_group: group)
+          |> render("show.json", respondent_group: respondent_group)
         end)
       true ->
         conn
         |> put_status(:unprocessable_entity)
-        |> render("show.json", respondent_group: group)
+        |> render("show.json", respondent_group: respondent_group)
       end
   end
 
@@ -102,24 +101,22 @@ defmodule Ask.RespondentGroupController do
     project = conn.assigns.loaded_project
     survey = conn.assigns.loaded_survey
 
-    group = survey
+    respondent_group = survey
     |> assoc(:respondent_groups)
     |> Repo.get!(id)
 
-    process_file(conn, survey, file, fn rows ->
-      {:ok, local_time } = Ecto.DateTime.cast :calendar.local_time()
-
+    process_file(conn, survey, file, fn file_phone_numbers ->
       # First delete existing respondents from that group
       Repo.delete_all(from r in Respondent,
-        where: r.respondent_group_id == ^group.id)
+        where: r.respondent_group_id == ^respondent_group.id)
 
       # Then create respondents from the CSV file
-      Ask.Runtime.RespondentGroup.insert_all_respondents(rows, project, survey, group, local_time)
+      Ask.Runtime.RespondentGroup.insert_respondents(file_phone_numbers, respondent_group.id, survey.id, project.salt)
 
-      sample = rows |> Enum.take(5)
-      respondents_count = rows |> length
+      sample = file_phone_numbers |> Enum.take(5)
+      respondents_count = file_phone_numbers |> length
 
-      group = group
+      respondent_group = respondent_group
       |> RespondentGroup.changeset(%{
         "sample" => sample,
         "respondents_count" => respondents_count,
@@ -130,7 +127,7 @@ defmodule Ask.RespondentGroupController do
       project |> Project.touch!
 
       conn
-      |> render("show.json", respondent_group: group)
+      |> render("show.json", respondent_group: respondent_group)
     end)
   end
 
@@ -152,38 +149,6 @@ defmodule Ask.RespondentGroupController do
     |> String.splitter(["\r\n", "\r", "\n"])
     |> Stream.map(fn r -> r |> String.split(",") |> Enum.at(0) |> String.trim end)
     |> Stream.filter(fn r -> String.length(r) != 0 end)
-  end
-
-  defp create_respondent_group(conn, survey, filename, rows, project) do
-    {:ok, local_time } = Ecto.DateTime.cast :calendar.local_time()
-
-    sample = rows |> Enum.take(5)
-    respondents_count = rows |> length
-
-    group = %RespondentGroup{
-      name: filename,
-      survey_id: survey.id,
-      sample: sample,
-      respondents_count: respondents_count
-    }
-    |> Repo.insert!
-    |> Repo.preload(:respondent_group_channels)
-
-    Ask.Runtime.RespondentGroup.insert_all_respondents(rows, project, survey, group, local_time)
-
-    survey
-    |> Repo.preload([:questionnaires])
-    |> Repo.preload([:quota_buckets])
-    |> Repo.preload(respondent_groups: [respondent_group_channels: :channel])
-    |> change
-    |> Survey.update_state
-    |> Repo.update!
-
-    project |> Project.touch!
-
-    conn
-    |> put_status(:created)
-    |> render("show.json", respondent_group: group)
   end
 
   defp render_unprocessable_entity(conn) do
@@ -256,11 +221,11 @@ defmodule Ask.RespondentGroupController do
     end
   end
 
-  defp merge_sample(old_sample, new_rows) do
+  defp merge_sample(old_sample, new_phone_numbers) do
     if length(old_sample) == 5 do
       old_sample
     else
-      old_sample ++ Enum.take(new_rows, 5 - length(old_sample))
+      old_sample ++ Enum.take(new_phone_numbers, 5 - length(old_sample))
     end
   end
 

@@ -3,6 +3,10 @@ defmodule Ask.RespondentGroup do
 
   schema "respondent_groups" do
     field :name, :string
+    # In Surveda informal talks, we use a lot the word "sample" to represent all the respondents
+    # of a group or survey.
+    # Here, the name "sample" is literal. In this field we keep only the very few first phone
+    # numbers shown to the end-user as a sample in the UI.
     field :sample, Ask.Ecto.Type.JSON
     field :respondents_count, :integer
     belongs_to :survey, Ask.Survey
