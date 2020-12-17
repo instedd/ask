@@ -5,7 +5,7 @@ defprotocol Ask.Runtime.SessionMode do
 end
 
 defmodule Ask.Runtime.SessionModeProvider do
-  alias Ask.Runtime.{SessionMode, SMSMode, IVRMode, MobileWebMode, SMSSimulatorMode}
+  alias Ask.Runtime.{SessionMode, SMSMode, IVRMode, MobileWebMode, SMSSimulatorMode, MobilewebSimulatorMode}
   alias Ask.{Repo, Channel}
 
   defp mode_provider("sms"), do: SMSMode
@@ -16,6 +16,10 @@ defmodule Ask.Runtime.SessionModeProvider do
 
   def new("sms", %Ask.Runtime.SimulatorChannel{} = channel, retries) do
     SMSSimulatorMode.new(channel, retries)
+  end
+
+  def new("mobileweb", %Ask.Runtime.SimulatorChannel{} = channel, retries) do
+    MobilewebSimulatorMode.new(channel, retries)
   end
 
   def new(mode, channel, retries) when not is_nil(channel) and is_list(retries) do
@@ -68,6 +72,33 @@ defmodule Ask.Runtime.SMSSimulatorMode do
     end
   end
 end
+
+defmodule Ask.Runtime.MobilewebSimulatorMode do
+  alias __MODULE__
+  alias Ask.Runtime.Flow.TextVisitor
+
+  defstruct [:channel, :retries]
+
+  def new(channel, retries), do: %MobilewebSimulatorMode{channel: channel, retries: retries}
+  def load(_mode_dump), do: %MobilewebSimulatorMode{}
+
+  defimpl Ask.Runtime.SessionMode, for: Ask.Runtime.MobilewebSimulatorMode do
+    def dump(%MobilewebSimulatorMode{}) do
+      %{
+        mode: "mobileweb",
+      }
+    end
+
+    def visitor(_) do
+      TextVisitor.new("mobileweb")
+    end
+
+    def mode(_) do
+      "mobileweb"
+    end
+  end
+end
+
 
 defmodule Ask.Runtime.SMSMode do
   alias __MODULE__

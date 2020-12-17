@@ -45,6 +45,7 @@ defmodule Ask.Runtime.QuestionnaireSimulator do
   alias Ask.Runtime.{Session, Flow, QuestionnaireSimulatorStore}
 
   @sms_mode "sms"
+  @mobileweb_mode "mobileweb"
 
   def start_simulation(project, questionnaire, mode \\ @sms_mode) do
     if valid_questionnaire?(questionnaire, mode) do
@@ -79,12 +80,12 @@ defmodule Ask.Runtime.QuestionnaireSimulator do
 
   defp valid_questionnaire?(quiz, mode), do: quiz.modes |> Enum.member?(mode)
 
-  defp start(%Project{} = project, %Questionnaire{} = questionnaire, @sms_mode) do
+  defp start(%Project{} = project, %Questionnaire{} = questionnaire, mode) when mode in [@sms_mode, @mobileweb_mode] do
     survey = %Survey{
       simulation: true,
       project_id: project.id,
       name: questionnaire.name,
-      mode: [[@sms_mode]],
+      mode: [[mode]],
       state: "running",
       cutoff: 1,
       schedule: Ask.Schedule.always(),
@@ -96,7 +97,7 @@ defmodule Ask.Runtime.QuestionnaireSimulator do
       survey_id: survey.id,
       survey: survey,
       questionnaire_id: questionnaire.id,
-      mode: [@sms_mode],
+      mode: [mode],
       disposition: "queued",
       phone_number: "",
       canonical_phone_number: "",
@@ -105,12 +106,12 @@ defmodule Ask.Runtime.QuestionnaireSimulator do
     }
 
     # Simulating what Broker does when starting a respondent: Session.start and then Survey.handle_session_step
-    session_started = Session.start(questionnaire, new_respondent, %Ask.Runtime.SimulatorChannel{}, @sms_mode, Ask.Schedule.always(), [], nil, nil, [], nil, false, false)
+    session_started = Session.start(questionnaire, new_respondent, %Ask.Runtime.SimulatorChannel{}, mode, Ask.Schedule.always(), [], nil, nil, [], nil, false, false)
     {:reply, reply, respondent} = Runtime.Survey.handle_session_step(session_started, SystemTime.time.now, false)
     section_order = respondent.session.flow.section_order
 
     # Simulating Nuntium confirmation on message delivery
-    %{respondent: respondent} = Runtime.Survey.delivery_confirm(sync_respondent(respondent), "", @sms_mode, false)
+    %{respondent: respondent} = Runtime.Survey.delivery_confirm(sync_respondent(respondent), "", mode, false)
 
     messages = AOMessage.create_all(reply)
     submitted_steps = SubmittedStep.new_explanations(reply)

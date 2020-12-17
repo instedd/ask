@@ -28,6 +28,7 @@ defmodule Ask.Runtime.Session do
     IVRMode,
     MobileWebMode,
     SMSSimulatorMode,
+    MobilewebSimulatorMode,
     ChannelPatterns,
     RetriesHistogram
   }
@@ -321,13 +322,12 @@ defmodule Ask.Runtime.Session do
     end
   end
 
-  defp mode_start(%Session{flow: flow, respondent: respondent, current_mode: %SMSSimulatorMode{}} = session) do
-    case flow |> Flow.step(session.current_mode  |> SessionMode.visitor, :answer, respondent.disposition) do
-      {:end, _, reply} ->
-        {:end, reply, respondent}
-      {:ok, flow, reply} ->
-        {:ok, %{session | flow: flow, respondent: respondent}, reply, current_timeout(session)}
-    end
+  defp mode_start(%Session{current_mode: %SMSSimulatorMode{}} = session) do
+    mode_start_simulation(session)
+  end
+
+  defp mode_start(%Session{current_mode: %MobilewebSimulatorMode{}} = session) do
+    mode_start_simulation(session)
   end
 
   defp mode_start(%Session{flow: flow, current_mode: %IVRMode{channel: channel}, respondent: respondent, token: token, schedule: schedule} = session) do
@@ -362,6 +362,15 @@ defmodule Ask.Runtime.Session do
     |> Channel.ask(respondent, token, reply)
 
     {:ok, %{session | flow: flow, respondent: respondent}, reply, current_timeout(session)}
+  end
+
+  defp mode_start_simulation(%Session{flow: flow, respondent: respondent, current_mode: current_mode} = session) do
+    case flow |> Flow.step(current_mode  |> SessionMode.visitor, :answer, respondent.disposition) do
+      {:end, _, reply} ->
+        {:end, reply, respondent}
+      {:ok, flow, reply} ->
+        {:ok, %{session | flow: flow, respondent: respondent}, reply, current_timeout(session)}
+    end
   end
 
   defp retry(session, runtime_channel) do
