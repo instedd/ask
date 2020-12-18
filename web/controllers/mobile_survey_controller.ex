@@ -1,30 +1,18 @@
 defmodule Ask.MobileSurveyController do
-  alias Ask.Runtime.{Survey, Reply}
+  alias Ask.Runtime.{Survey, Reply, QuestionnaireSimulatorStore}
   alias Ask.Respondent
   use Ask.Web, :controller
 
   @default_title "InSTEDD Surveda"
 
   def index(conn, %{"respondent_id" => respondent_id, "token" => token}) do
-    respondent = Respondent |> Repo.get(respondent_id)
-    if !respondent do
-      conn
-        |> put_status(:not_found)
-        |> put_layout({Ask.LayoutView, "mobile_survey.html"})
-        |> render("404.html", title: @default_title, mobile_web_intro_message: "mobile_web_intro_message")
-    else
-      color_style = color_style_for(respondent_id)
-      authorize(conn, respondent_id, token, fn ->
-        render_index(conn, respondent, token, color_style)
-      end)
-    end
+    %{respondent: respondent} = QuestionnaireSimulatorStore.get_respondent_simulation(respondent_id)
+    color_style = respondent.session.flow.questionnaire.settings["mobile_web_color_style"]
+    render_index(conn, respondent, token, color_style)
   end
 
   defp render_index(conn, respondent, token, color_style) do
-    questionnaire = respondent
-    |> assoc(:questionnaire)
-    |> Repo.one
-
+    questionnaire = respondent.session.flow.questionnaire
     default_language = questionnaire.default_language
 
     {title, mobile_web_intro_message} = case questionnaire do
