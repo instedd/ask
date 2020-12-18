@@ -55,7 +55,7 @@ defmodule Ask.Runtime.QuestionnaireSimulator do
     end
   end
 
-  def process_respondent_response(respondent_id, response) do
+  def process_respondent_response(respondent_id, response, mode \\ @sms_mode) do
     simulation = QuestionnaireSimulatorStore.get_respondent_simulation(respondent_id)
     if(simulation) do
       %{respondent: respondent, messages: messages} = simulation
@@ -63,7 +63,7 @@ defmodule Ask.Runtime.QuestionnaireSimulator do
       simulation = QuestionnaireSimulatorStore.add_respondent_simulation(respondent.id, %Ask.QuestionnaireSimulation{simulation | messages: updated_messages})
       reply = Flow.Message.reply(response)
 
-      case Runtime.Survey.sync_step(respondent, reply, @sms_mode, SystemTime.time.now, false) do
+      case Runtime.Survey.sync_step(respondent, reply, mode, SystemTime.time.now, false) do
         {:reply, reply, respondent} ->
           handle_app_reply(simulation, respondent, reply, Status.active)
         {:end, {:reply, reply}, respondent} ->

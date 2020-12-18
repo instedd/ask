@@ -1,6 +1,6 @@
 defmodule Ask.MobileSurveyController do
-  alias Ask.Runtime.{Survey, Reply, QuestionnaireSimulatorStore}
-  alias Ask.Respondent
+  alias Ask.Runtime.{Survey, Reply, QuestionnaireSimulator, QuestionnaireSimulatorStore}
+  alias Ask.{Respondent, SystemTime}
   use Ask.Web, :controller
 
   @default_title "InSTEDD Surveda"
@@ -43,43 +43,38 @@ defmodule Ask.MobileSurveyController do
   end
 
   def get_step(conn, %{"respondent_id" => respondent_id, "token" => token}) do
-    authorize(conn, respondent_id, token, fn ->
-      check_cookie(conn, respondent_id, fn conn ->
-        sync_step(conn, respondent_id, :answer)
-      end)
-    end)
+    %{respondent: respondent} = QuestionnaireSimulatorStore.get_respondent_simulation(respondent_id)
+    sync_step(conn, respondent, :answer)
   end
 
   def send_reply(conn, %{"respondent_id" => respondent_id, "token" => token, "value" => value, "step_id" => step_id}) do
-    authorize(conn, respondent_id, token, fn ->
-      check_cookie(conn, respondent_id, fn conn ->
-        sync_step(conn, respondent_id, {:reply_with_step_id, value, step_id})
-      end)
-    end)
+    %{respondent: respondent} = QuestionnaireSimulatorStore.get_respondent_simulation(respondent_id)
+
+    # hacking for saving the respondent state
+    {:ok, simulation} = QuestionnaireSimulator.process_respondent_response(respondent_id, value, "mobileweb")
+
+    sync_step(conn, respondent, {:reply_with_step_id, value, step_id})
   end
 
-  defp sync_step(conn, respondent_id, value) do
-    {step, progress, error_message} = Respondent.with_lock(respondent_id, fn respondent ->
-      survey = Repo.preload(respondent, :survey).survey
-      cond do
-        survey.state == "terminated" ->
-          questionnaires = Repo.preload(survey, :questionnaires).questionnaires
-          questionnaire = Enum.random(questionnaires)
-          msg = questionnaire.settings["mobile_web_survey_is_over_message"] || "The survey is over"
-          {end_step(msg), end_progress(), nil}
-        respondent.state in ["pending", "active", "rejected"] ->
-          case Survey.sync_step(respondent, value, "mobileweb") do
-            {:reply, reply, _} ->
-              {first_step(reply), progress(reply), reply.error_message}
-            {:end, {:reply, reply}, _} ->
-              {first_step(reply), progress(reply), reply.error_message}
-            {:end, _} ->
-              {end_step(), end_progress(), nil}
-          end
-        true ->
-          {end_step(fetch_survey_already_taken_message(respondent)), end_progress(), nil}
-      end
-    end, &Repo.preload(&1, :questionnaire))
+  defp sync_step(conn, respondent, value) do
+    {step, progress, error_message} = cond do
+      respondent.survey.state == "terminated" ->
+        questionnaires = Repo.preload(respondent.survey, :questionnaires).questionnaires
+        questionnaire = Enum.random(questionnaires)
+        msg = questionnaire.settings["mobile_web_survey_is_over_message"] || "The survey is over"
+        {end_step(msg), end_progress(), nil}
+      respondent.state in ["pending", "active", "rejected"] ->
+        case Survey.sync_step(respondent, value, "mobileweb", SystemTime.time.now, false) do
+          {:reply, reply, _} ->
+            {first_step(reply), progress(reply), reply.error_message}
+          {:end, {:reply, reply}, _} ->
+            {first_step(reply), progress(reply), reply.error_message}
+          {:end, _} ->
+            {end_step(), end_progress(), nil}
+        end
+      true ->
+        {end_step(fetch_survey_already_taken_message(respondent)), end_progress(), nil}
+    end
 
     json(conn, %{
       step: step,
