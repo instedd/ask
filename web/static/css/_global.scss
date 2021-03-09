@@ -1,3 +1,19 @@
+.panel-survey-card-0 {
+  position: relative;
+  background-color: #fff;
+  border-radius: 3px !important;
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -2px rgba(0, 0, 0, 0.2);
+}
+
+.panel-survey-card-1 {
+  @extend .panel-survey-card-0;
+  top: 4px;
+  left: -4px;
+}
+
+.panel-survey-card-2 {
+  @extend .panel-survey-card-1;
+}
 
 .error {
   color: $input-error-color;
