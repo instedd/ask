@@ -544,7 +544,7 @@
   "You'll be able to see surveys, questionnaires, content and collaborators": "",
   "activities": "",
   "activity": "",
-  "and will be canceled on {{endDate}}": "",
+  "and will be canceled on {{lastWindowEndsAt}}": "",
   "channel": "",
   "channels": "",
   "disposition history": "",

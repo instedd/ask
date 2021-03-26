@@ -648,39 +648,27 @@ defmodule Ask.Runtime.BrokerTest do
       refute survey2.first_window_started_at
     end
 
-    test "stops the survey if end_date is today" do
-      {:ok, now, _} = DateTime.from_iso8601("2021-02-19T12:00:00Z")
-      schedule = %{Schedule.always() | end_date: ~D[2021-02-19]}
-      survey = insert(:survey, %{schedule: schedule, state: "running"})
+    @tag :time_mock
+    test "stops the survey if it's expired" do
+      {:ok, now, _} = DateTime.from_iso8601("2021-02-19T00:00:00Z")
+      mock_time(now)
+      schedule = Schedule.always()
+      survey = insert(:survey, %{schedule: schedule, state: "running", last_window_ends_at: Timex.shift(now, days: -1)})
 
-      {:ok, %{processes: processes}} = Broker.poll_survey(survey, now)
+      stop_surveys_result = Broker.poll_active_surveys(now)
 
       survey = Repo.get(Ask.Survey, survey.id)
       assert survey.state == "cancelling"
 
-      wait_all_cancellations_from_pids(processes)
+      Enum.each(stop_surveys_result, fn {:ok, %{processes: processes}} ->
+        wait_all_cancellations_from_pids(processes)
+      end)
 
       survey = Repo.get(Ask.Survey, survey.id)
       assert survey.state == "terminated"
     end
 
-    test "stops the survey if end_date has passed" do
-      {:ok, now, _} = DateTime.from_iso8601("2021-02-19T12:00:00Z")
-      schedule = %{Schedule.always() | end_date: ~D[2021-02-11]}
-      survey = insert(:survey, %{schedule: schedule, state: "running"})
-
-      {:ok, %{processes: processes}} = Broker.poll_survey(survey, now)
-
-      survey = Repo.get(Ask.Survey, survey.id)
-      assert survey.state == "cancelling"
-
-      wait_all_cancellations_from_pids(processes)
-
-      survey = Repo.get(Ask.Survey, survey.id)
-      assert survey.state == "terminated"
-    end
-
-    test "doesn't stop the survey if end_date hasn't passed" do
+    test "doesn't stop the survey if it isn't expired" do
       {:ok, now, _} = DateTime.from_iso8601("2021-02-11T12:00:00Z")
       schedule = %{Schedule.always() | end_date: ~D[2021-02-19]}
       survey = insert(:survey, %{schedule: schedule, state: "running"})

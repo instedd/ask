@@ -57,7 +57,8 @@ defmodule Ask.SurveyView do
       first_window_started_at: first_window_started_at(survey),
       is_panel_survey: Survey.panel_survey?(survey),
       panel_survey_of: survey.panel_survey_of,
-      is_repeatable: Survey.repeatable?(survey)
+      is_repeatable: Survey.repeatable?(survey),
+      last_window_ends_at: survey.last_window_ends_at
     }
   end
   def render("survey_detail.json", %{survey: survey}) do
@@ -100,7 +101,8 @@ defmodule Ask.SurveyView do
       is_repeatable: Survey.repeatable?(survey),
       incentives_enabled: survey.incentives_enabled,
       first_window_started_at: first_window_started_at(survey),
-      panel_survey_of: survey.panel_survey_of
+      panel_survey_of: survey.panel_survey_of,
+      last_window_ends_at: survey.last_window_ends_at
     }
 
     if Ask.Survey.launched?(survey) || survey.simulation do

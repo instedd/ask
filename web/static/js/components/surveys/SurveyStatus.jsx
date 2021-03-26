@@ -66,10 +66,9 @@ class SurveyStatus extends PureComponent {
 
   endsOnMessage() {
     const { survey, t } = this.props
-    const { endDate } = survey.schedule
-    if (!endDate) return null
-    const dateString = dateformat(endDate, 'yyyy-mm-dd')
-    return t('and will be canceled on {{endDate}}', {endDate: dateString})
+    const { lastWindowEndsAt } = survey
+    if (!lastWindowEndsAt) return null
+    return t('and will be canceled on {{lastWindowEndsAt}}', {lastWindowEndsAt: this.formatDate(new Date(survey.lastWindowEndsAt), survey.schedule.timezone)})
   }
 
   render() {

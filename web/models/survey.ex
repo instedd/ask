@@ -45,7 +45,7 @@ defmodule Ask.Survey do
     #   * 1st mode sequence: Mobileweb as primary mode, IVR as fallback mode
     #   * 2nd mode sequence: SMS as primary mode, no fallback mode
     field :mode, JSON
-    field :state, :string, default: "not_ready" # not_ready, ready, pending, running, terminated
+    field :state, :string, default: "not_ready" # not_ready, ready, pending, running, terminated, cancelling
     field :locked, :boolean, default: false
     field :exit_code, :integer
     field :exit_message, :string
@@ -63,6 +63,7 @@ defmodule Ask.Survey do
     # first_window_started_at: the moment when the survey becomes actually active for the first time.
     field :first_window_started_at, Timex.Ecto.DateTime
     field :ended_at, Timex.Ecto.DateTime
+    field :last_window_ends_at, Timex.Ecto.DateTime
     field :sms_retry_configuration, :string
     field :ivr_retry_configuration, :string
     field :mobileweb_retry_configuration, :string
@@ -111,7 +112,7 @@ defmodule Ask.Survey do
   """
   def changeset(struct, params \\ %{}) do
     struct
-    |> cast(params, [:name, :description, :project_id, :folder_id, :mode, :state, :locked, :exit_code, :exit_message, :cutoff, :schedule, :sms_retry_configuration, :ivr_retry_configuration, :mobileweb_retry_configuration, :fallback_delay, :started_at, :quotas, :quota_vars, :comparisons, :count_partial_results, :simulation, :ended_at, :panel_survey_of, :latest_panel_survey, :incentives_enabled, :first_window_started_at])
+    |> cast(params, [:name, :description, :project_id, :folder_id, :mode, :state, :locked, :exit_code, :exit_message, :cutoff, :schedule, :sms_retry_configuration, :ivr_retry_configuration, :mobileweb_retry_configuration, :fallback_delay, :started_at, :quotas, :quota_vars, :comparisons, :count_partial_results, :simulation, :ended_at, :panel_survey_of, :latest_panel_survey, :incentives_enabled, :first_window_started_at, :last_window_ends_at])
     |> set_floip_package_id
     |> validate_required([:project_id, :state, :schedule])
     |> foreign_key_constraint(:project_id)
@@ -652,5 +653,22 @@ defmodule Ask.Survey do
 
   def delete_multi(survey) do
     Multi.delete(Multi.new, :survey, survey)
+  end
+
+  def expired?(survey, date_time \\ SystemTime.time.now)
+
+  def expired?(%{last_window_ends_at: nil} = _survey, _date_time), do: false
+
+  def expired?(
+        %{last_window_ends_at: last_window_ends_at, schedule: %{timezone: timezone}} = _survey,
+        date_time
+      ) do
+
+    date_time
+    # Just in case, delay the expiration 5 minutes.
+    |> Timex.shift(minutes: 5)
+    |> Timex.to_datetime(timezone)
+    |> DateTime.to_date()
+    |> Date.compare(last_window_ends_at) != :lt
   end
 end

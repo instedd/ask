@@ -74,29 +74,37 @@ defmodule Ask.Runtime.Broker do
     |> RespondentDispositionHistory.create(respondent.disposition, primary_mode)
   end
 
-  defp poll_active_surveys(now) do
-    all_running_surveys = Repo.all(from s in Survey,
-                                   where: s.state == "running",
-                                   preload: [respondent_groups: [respondent_group_channels: :channel]])
-    all_running_surveys
-    |> Enum.filter(&Schedule.intersect?(&1.schedule, now))
+  def poll_active_surveys(now) do
+    all_running_surveys =
+      Repo.all(
+        from(s in Survey,
+          where: s.state == "running",
+          preload: [respondent_groups: [respondent_group_channels: :channel]]
+        )
+      )
+
+    expired_surveys = Enum.filter(all_running_surveys, fn survey -> Survey.expired?(survey) end)
+    expired_surveys_ids = Enum.map(expired_surveys, fn %{id: id} -> id end)
+
+    Enum.filter(all_running_surveys, fn survey ->
+      survey.id not in expired_surveys_ids and Schedule.intersect?(survey.schedule, now)
+    end)
     |> Enum.each(fn survey -> poll_survey(survey, now) end)
+
+    stop_surveys(expired_surveys)
+  end
+
+  defp stop_surveys(surveys) do
+    Enum.map(surveys, fn survey -> stop_survey(survey) end)
   end
 
   def poll_survey(survey, now) do
-    if Schedule.end_date_passed?(survey.schedule, now) do
-      # Between the 00:00 of the end_date and this survey poll (the poll_interval is 1 minute)
-      # the survey will be active during a short but unexpected time window.
-      # We explicitly decided to ignore this corner case to gain solidity and simplicity
-      stop_survey(survey)
-    else
-      channels = survey |> Survey.survey_channels
-      channel_is_down? = channels |> Enum.any?(fn c ->
-        status = c.id |> ChannelStatusServer.get_channel_status
-        (status != :up && status != :unknown)
-      end)
-      poll_survey(survey, now, channel_is_down?)
-    end
+    channels = survey |> Survey.survey_channels
+    channel_is_down? = channels |> Enum.any?(fn c ->
+      status = c.id |> ChannelStatusServer.get_channel_status
+      (status != :up && status != :unknown)
+    end)
+    poll_survey(survey, now, channel_is_down?)
   end
 
   defp poll_survey(survey, _now, true = _channel_is_down) do

@@ -153,6 +153,44 @@ defmodule Ask.ScheduleTest do
     end
   end
 
+  describe "last_window_ends_at" do
+    setup do
+      base_schedule = %Ask.Schedule{
+        start_time: ~T[09:00:00],
+        end_time: ~T[18:00:00],
+        day_of_week: %Ask.DayOfWeek{sun: true, wed: true},
+        timezone: "America/Argentina/Buenos_Aires",
+        start_date: ~D[2017-03-03],
+        blocked_days: [~D[2017-10-08]]
+      }
+      {:ok, base_schedule: base_schedule}
+    end
+
+    test "gets last available time: unavaible day", %{base_schedule: base_schedule} do
+      schedule = %{base_schedule | end_date: ~D[2017-10-14]}
+
+      time = Schedule.last_window_ends_at(schedule)
+
+      assert time == DateTime.from_naive!(~N[2017-10-11 21:00:00], "Etc/UTC")
+    end
+
+    test "gets last available time: this day", %{base_schedule: base_schedule} do
+      schedule = %{base_schedule | end_date: ~D[2017-10-11]}
+
+      time = Schedule.last_window_ends_at(schedule)
+
+      assert time == DateTime.from_naive!(~N[2017-10-11 21:00:00], "Etc/UTC")
+    end
+
+    test "gets next available time: blocked day", %{base_schedule: base_schedule} do
+      schedule = %{base_schedule | end_date: ~D[2017-10-10]}
+
+      time = Schedule.last_window_ends_at(schedule)
+
+      assert time == DateTime.from_naive!(~N[2017-10-04 21:00:00], "Etc/UTC")
+    end
+  end
+
   describe "at_end_time" do
     test "bug with IVR schedule in Ecuador" do
       schedule = %Ask.Schedule{
@@ -208,54 +246,6 @@ defmodule Ask.ScheduleTest do
       {:ok, expected_next_available_date_time, _} = DateTime.from_iso8601("2021-02-19T14:00:00Z")
 
       assert next_available_date_time == expected_next_available_date_time
-    end
-  end
-
-  describe "end date" do
-    setup do
-      {:ok, dt_not_passed, _} = DateTime.from_iso8601("2021-02-11T12:00:00Z")
-      {:ok, dt_today, _} = DateTime.from_iso8601("2021-02-19T19:00:00Z")
-      {:ok, dt_passed, _} = DateTime.from_iso8601("2021-02-25T12:00:00Z")
-
-      {
-        :ok,
-        end_date: ~D[2021-02-19],
-        dt_not_passed: dt_not_passed,
-        dt_today: dt_today,
-        dt_passed: dt_passed
-      }
-    end
-
-    test "end_date_passed? returns false when there's no end_date in the schedule" do
-      schedule = Schedule.always()
-
-      end_date_passed? = Schedule.end_date_passed?(schedule)
-
-      assert end_date_passed? == false
-    end
-
-    test "end_date_passed? returns false when the end_date didn't passed", %{end_date: end_date, dt_not_passed: dt_not_passed} do
-      schedule = %{Schedule.always() | end_date: end_date}
-
-      end_date_passed? = Schedule.end_date_passed?(schedule, dt_not_passed)
-
-      assert end_date_passed? == false
-    end
-
-    test "end_date_passed? returns true when end_date is today", %{end_date: end_date, dt_today: dt_today} do
-      schedule = %{Schedule.always() | end_date: end_date}
-
-      end_date_passed? = Schedule.end_date_passed?(schedule, dt_today)
-
-      assert end_date_passed? == true
-    end
-
-    test "end_date_passed? returns true when the end_date passed", %{end_date: end_date, dt_today: dt_passed} do
-      schedule = %{Schedule.always() | end_date: end_date}
-
-      end_date_passed? = Schedule.end_date_passed?(schedule, dt_passed)
-
-      assert end_date_passed? == true
     end
   end
 end

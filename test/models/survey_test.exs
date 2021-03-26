@@ -132,4 +132,9 @@ defmodule Ask.SurveyTest do
 
     assert survey_channels_ids == [channel_1.id, channel_2.id, channel_3.id]
   end
+
+  # TODO: Write tests!
+  describe "expired?" do
+    test "it works"
+  end
 end
