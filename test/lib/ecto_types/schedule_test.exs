@@ -105,6 +105,7 @@ defmodule Ask.ScheduleTest do
       end_time: ~T[18:00:00],
       day_of_week: %Ask.DayOfWeek{sun: true, wed: true},
       timezone: "America/Argentina/Buenos_Aires",
+      start_date: ~D[2017-03-03],
       blocked_days: [~D[2017-10-08]]
     }
 
@@ -141,6 +142,14 @@ defmodule Ask.ScheduleTest do
       base = DateTime.from_naive!(~N[2017-10-08 13:00:00], "Etc/UTC")
       time = @schedule |> Schedule.next_available_date_time(base)
       assert time == DateTime.from_naive!(~N[2017-10-11 12:00:00], "Etc/UTC")
+    end
+
+    test "gets next available time: start date" do
+      # Long before the start date
+      base = DateTime.from_naive!(~N[2017-02-01 00:00:00], "Etc/UTC")
+      time = @schedule |> Schedule.next_available_date_time(base)
+      # The beginning of the first active window after the start date
+      assert time == DateTime.from_naive!(~N[2017-03-05 12:00:00], "Etc/UTC")
     end
   end
 
