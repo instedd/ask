@@ -143,75 +143,60 @@ defmodule Ask.Schedule do
     "Etc/UTC"
   end
 
-  def next_available_date_time(%Schedule{} = schedule, %DateTime{} = date_time \\ DateTime.utc_now) do
+  # Find the beggining of the first active window, going forward
+  def next_available_date_time(%Schedule{} = schedule, %DateTime{} = from_date_time \\ DateTime.utc_now) do
+    reversible_next_available_date_time(schedule, from_date_time)
+  end
+
+  # Find the ending of the last active window, going backward from the last minute of the end_date
+  def last_window_ends_at(%{end_date: nil} = _schedule), do: nil
+  def last_window_ends_at(%{end_date: end_date} = schedule) do
+    date_from = Date.add(end_date, 1)
+    backward = true
+    reversible_next_available_date_time(schedule, date_from, backward)
+  end
+
+  # Why do we need this reversible function? Because we need to calculate:
+  # 1. The start_time of the first active window (backward = false)
+  # 2. The end_time of the last active window (backward = true)
+  # And the logic for doing that is pretty much the same.
+  defp reversible_next_available_date_time(schedule, date_time, backward \\ false) do
+    date_time = Timex.to_datetime(date_time, schedule.timezone)
+
     # TODO: Remove the necessity of converting this to erl dates
-    date_time = date_time
-    |> Timex.to_datetime(schedule.timezone)
+    {erl_date, erl_time} = Timex.to_erl(date_time)
+    {:ok, time} = Time.from_erl(erl_time)
 
-    {erl_date, erl_time} = date_time |> Timex.to_erl
-
-    {:ok, time} = erl_time
-    |> Time.from_erl
-
-    backward = false
-
-    # If this day is enabled in the schedule
+    # If this date is available
     date_time = if day_of_week_available?(schedule, erl_date) do
       # Check if the time is inside the schedule time range
       case compare_time(schedule, time) do
         :before ->
-          # If it's before the time range, move it to the beginning of the range
-          at_start_time(schedule, erl_date)
+          if backward do
+            # Move it to the previous available date
+            next_available_date_time_internal(schedule, erl_date, backward)
+          else
+            # Move it to the beginning time of the range
+            at_start_time(schedule, erl_date)
+          end
         :inside ->
           # If it's inside there's nothing to do
           date_time
         :after ->
-          # If it's after the time range, find the next day
-          next_available_date_time_internal(schedule, erl_date, backward)
+          if backward do
+            # move it to the end time of the range
+            at_end_time(schedule, erl_date)
+          else
+            # Move it to the following available date
+            next_available_date_time_internal(schedule, erl_date, backward)
+          end
       end
     else
-      # If the day is not enabled, find the next day
+      # If the date is not available, find the following available date
       next_available_date_time_internal(schedule, erl_date, backward)
     end
 
     date_time
-    |> Timex.Timezone.convert("Etc/UTC")
-  end
-
-  def last_window_ends_at(%{end_date: nil} = _schedule), do: nil
-
-  def last_window_ends_at(%{end_date: end_date} = schedule) do
-    end_date = end_date
-    |> Date.add(1)
-    |> Timex.to_datetime(schedule.timezone)
-
-    {erl_date, erl_time} = end_date |> Timex.to_erl
-
-    {:ok, time} = erl_time
-    |> Time.from_erl
-
-    backward = true
-
-    # If this day is enabled in the schedule
-    last_window_ends_at = if day_of_week_available?(schedule, erl_date) do
-      # Check if the time is inside the schedule time range
-      case compare_time(schedule, time) do
-        :before ->
-          # If it's before the time range, find the previous day
-          next_available_date_time_internal(schedule, erl_date, backward)
-        :inside ->
-          # If it's inside there's nothing to do
-            end_date
-        :after ->
-          # If it's afer the time range, move it to the end of the range
-          at_end_time(schedule, erl_date)
-      end
-    else
-      # If the day is not enabled, find the previous day
-      next_available_date_time_internal(schedule, erl_date, backward)
-    end
-
-    last_window_ends_at
     |> Timex.Timezone.convert("Etc/UTC")
   end
 
