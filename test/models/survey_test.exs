@@ -133,8 +133,56 @@ defmodule Ask.SurveyTest do
     assert survey_channels_ids == [channel_1.id, channel_2.id, channel_3.id]
   end
 
-  # TODO: Write tests!
   describe "expired?" do
-    test "it works"
+    setup do
+      {:ok, last_window_ends_at, _} = DateTime.from_iso8601("2021-02-11T15:00:00Z")
+      {
+        :ok,
+        expirable_survey: insert(:survey, last_window_ends_at: last_window_ends_at),
+        non_expirable_survey: insert(:survey)
+      }
+    end
+
+    test "returns false when the survey cancellation isnt' scheduled", %{non_expirable_survey: survey} do
+      expired? = Survey.expired?(survey)
+
+      assert expired? == false
+    end
+
+    @tag :time_mock
+    test "returns false when last_window_ends_at didn't passed", %{expirable_survey: survey} do
+      Timex.shift(survey.last_window_ends_at, days: -1) |> mock_time()
+
+      expired? = Survey.expired?(survey)
+
+      assert expired? == false
+    end
+
+    @tag :time_mock
+    test "returns false when last_window_ends_at passed less than 5 minutes ago", %{expirable_survey: survey} do
+      Timex.shift(survey.last_window_ends_at, minutes: 4, seconds: 59) |> mock_time()
+
+      expired? = Survey.expired?(survey)
+
+      assert expired? == false
+    end
+
+    @tag :time_mock
+    test "returns true when last_window_ends_at passed more than 5 minutes ago", %{expirable_survey: survey} do
+      Timex.shift(survey.last_window_ends_at, minutes: 5) |> mock_time()
+
+      expired? = Survey.expired?(survey)
+
+      assert expired? == true
+    end
+
+    @tag :time_mock
+    test "returns true when last_window_ends_at passed", %{expirable_survey: survey} do
+      Timex.shift(survey.last_window_ends_at, days: 1) |> mock_time()
+
+      expired? = Survey.expired?(survey)
+
+      assert expired? == true
+    end
   end
 end

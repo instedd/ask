@@ -664,11 +664,11 @@ defmodule Ask.Survey do
         date_time
       ) do
 
+    # Just in case, the expiration is delayed 5 minutes.
+    expiration_date_time = Timex.shift(last_window_ends_at, minutes: 5)
+
     date_time
-    # Just in case, delay the expiration 5 minutes.
-    |> Timex.shift(minutes: 5)
     |> Timex.to_datetime(timezone)
-    |> DateTime.to_date()
-    |> Date.compare(last_window_ends_at) != :lt
+    |> DateTime.compare(expiration_date_time) != :lt
   end
 end
