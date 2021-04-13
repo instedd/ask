@@ -153,41 +153,70 @@ defmodule Ask.ScheduleTest do
     end
   end
 
-  describe "last_window_ends_at" do
+  describe "Survey.last_window_ends_at/1" do
     setup do
+      # The 2nd week of April 2021
       base_schedule = %Ask.Schedule{
+        # Starts on Monday
+        start_date: ~D[2021-04-12],
+        # From Tuesday to Thursday
+        day_of_week: %Ask.DayOfWeek{tue: true, wed: true, thu: true},
+        # Wednesday is blocked (so only Tuesday and Thursday are available)
+        blocked_days: [~D[2021-04-14]],
+        # From 9 AM
         start_time: ~T[09:00:00],
+        # To 6 PM
         end_time: ~T[18:00:00],
-        day_of_week: %Ask.DayOfWeek{sun: true, wed: true},
-        timezone: "America/Argentina/Buenos_Aires",
-        start_date: ~D[2017-03-03],
-        blocked_days: [~D[2017-10-08]]
+        # DateTime.from_naive! expects a time zone to put the NaiveDateTime in.
+        # If the time zone is "Etc/UTC", it always succeeds.
+        # Use "Etc/UTC" to avoid unnecessary timezone complications on these tests.
+        timezone: "Etc/UTC"
       }
       {:ok, base_schedule: base_schedule}
     end
 
-    test "gets last available time: unavaible day", %{base_schedule: base_schedule} do
-      schedule = %{base_schedule | end_date: ~D[2017-10-14]}
+    test "if end_date is on Saturday, ends on Thursday at 18:00", %{base_schedule: base_schedule} do
+      # end_date is on Saturday
+      end_date = ~D[2021-04-17]
+      schedule = %{base_schedule | end_date: end_date}
 
       time = Schedule.last_window_ends_at(schedule)
 
-      assert time == DateTime.from_naive!(~N[2017-10-11 21:00:00], "Etc/UTC")
+      # Ends on Thursday at 18:00
+      assert time == DateTime.from_naive!(~N[2021-04-15 18:00:00], "Etc/UTC")
     end
 
-    test "gets last available time: this day", %{base_schedule: base_schedule} do
-      schedule = %{base_schedule | end_date: ~D[2017-10-11]}
+    test "if end_date is on Thursday, ends on Thursday at 18:00", %{base_schedule: base_schedule} do
+      # end_date is on Thursday
+      end_date = ~D[2021-04-15]
+      schedule = %{base_schedule | end_date: end_date}
 
       time = Schedule.last_window_ends_at(schedule)
 
-      assert time == DateTime.from_naive!(~N[2017-10-11 21:00:00], "Etc/UTC")
+      # Ends on Thrusday at 18:00
+      assert time == DateTime.from_naive!(~N[2021-04-15 18:00:00], "Etc/UTC")
     end
 
-    test "gets next available time: blocked day", %{base_schedule: base_schedule} do
-      schedule = %{base_schedule | end_date: ~D[2017-10-10]}
+    test "if end_date is on Wednesday, ends on Tuesday at 18:00", %{base_schedule: base_schedule} do
+      # end_date is on Wedsnesday
+      end_date = ~D[2021-04-14]
+      schedule = %{base_schedule | end_date: end_date}
 
       time = Schedule.last_window_ends_at(schedule)
 
-      assert time == DateTime.from_naive!(~N[2017-10-04 21:00:00], "Etc/UTC")
+      # Ends on Tuesday at 18:00
+      assert time == DateTime.from_naive!(~N[2021-04-13 18:00:00], "Etc/UTC")
+    end
+
+    test "if end_date is on Monday, it breaks", %{base_schedule: base_schedule} do
+      # end_date is on Monday
+      end_date = ~D[2021-04-12]
+      schedule = %{base_schedule | end_date: end_date}
+
+      # It breaks
+      assert_raise(FunctionClauseError, "no function clause matching in Date.from_erl/2", fn ->
+        Schedule.last_window_ends_at(schedule)
+      end)
     end
   end
 
