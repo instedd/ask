@@ -167,37 +167,42 @@ defmodule Ask.Schedule do
     {erl_date, erl_time} = Timex.to_erl(date_time)
     {:ok, time} = Time.from_erl(erl_time)
 
-    # If this date is available
-    date_time = if day_of_week_available?(schedule, erl_date) do
-      # Check if the time is inside the schedule time range
-      case compare_time(schedule, time) do
-        :before ->
-          if backward do
-            # Move it to the previous available date
-            next_available_date_time_internal(schedule, erl_date, backward)
-          else
-            # Move it to the beginning time of the range
-            at_start_time(schedule, erl_date)
-          end
-        :inside ->
-          # If it's inside there's nothing to do
-          date_time
-        :after ->
-          if backward do
-            # move it to the end time of the range
-            at_end_time(schedule, erl_date)
-          else
-            # Move it to the following available date
-            next_available_date_time_internal(schedule, erl_date, backward)
-          end
-      end
+    selected_datetime = if day_of_week_available?(schedule, erl_date) && compare_time(schedule, time) == :inside do
+      date_time
     else
-      # If the date is not available, find the following available date
-      next_available_date_time_internal(schedule, erl_date, backward)
+      selected_date = select_schedule_date(schedule, datetime, backward)
+      select_time_for_date(schedule, selected_date, backward)
     end
 
-    date_time
+    selected_datetime
     |> Timex.Timezone.convert("Etc/UTC")
+  end
+
+  def select_time_for_date(schedule, selected_date, backward) do
+      if backward, do: at_end_time(schedule, selected_date), else: at_start_time(schedule, selected_date)
+  end
+
+  def select_schedule_date(schedule, datetime, backward) do
+    if(day_of_week_available?(date)) do
+      case compare_time(datetime) do
+        :before ->
+          if backward do
+            next_available_schedule_date()
+          else
+            erl_date
+          end
+        end
+        :after ->
+          if backward do
+            erl_date
+          else
+            next_available_schedule_date()
+          end
+        end
+      end
+    else
+      next_available_schedule_date()
+    end
   end
 
   def at_end_time(%Schedule{end_time: end_time, timezone: timezone}, %DateTime{} = date_time) do
