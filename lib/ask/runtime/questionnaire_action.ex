@@ -204,6 +204,10 @@ defmodule Ask.Runtime.CleanI18n do
     forward_path = fn positions -> String.slice(path, positions..-1) end
 
     cond do
+      path == ".prompt" and language_selection_step?(entity) ->
+        # Don't clean the language selection step
+        entity
+
       # Base case
       path == "" ->
         clean_base_case(entity, filter_languages)
@@ -224,6 +228,9 @@ defmodule Ask.Runtime.CleanI18n do
         {:error, "Invalid path"}
     end
   end
+
+  defp language_selection_step?(%{"type" => "language-selection"} = _entity), do: true
+  defp language_selection_step?(_entity), do: false
 
   defp clean_key(entity, langs, path, forward_path) do
     key = String.split(path, ".") |> Enum.at(1)
